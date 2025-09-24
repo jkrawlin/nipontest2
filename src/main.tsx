@@ -31,11 +31,13 @@ if (rootEl) {
 }
 
 ReactDOM.createRoot(rootEl as HTMLElement).render(
+  <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-  <App />
+        <App />
       </BrowserRouter>
     </QueryClientProvider>
+  </React.StrictMode>
 );
 
 if (rootEl) {

@@ -1,18 +1,22 @@
-/* Tailwind directives omitted for type checker compatibility; build pipeline can re-add if configured. */
-:root { --color-bg: #F5EFE7; }
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Define custom properties if needed; mapping to extended palette */
+:root {
+  --color-bg: #F5EFE7; /* qatar.beige */
+}
 
 html, body, #root { height: 100%; }
 
-body {
-	background: var(--color-bg);
-	color: #1f2937;
-	-webkit-font-smoothing: antialiased;
-}
+body { @apply bg-qatar-beige text-gray-900 antialiased; }
 
-/* Simple scrollbar styling */
+/* Scrollbars */
 ::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-track { background: var(--color-bg); }
-::-webkit-scrollbar-thumb { background: rgba(138,21,56,0.6); border-radius: 6px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(138,21,56,1); }
+::-webkit-scrollbar-track { @apply bg-qatar-beige; }
+::-webkit-scrollbar-thumb { @apply bg-qatar-maroon/60 rounded; }
+::-webkit-scrollbar-thumb:hover { @apply bg-qatar-maroon; }
 
-@media print { body { background:#fff; color:#000; } }
+@media print {
+  body { @apply bg-white text-black; }
+}
