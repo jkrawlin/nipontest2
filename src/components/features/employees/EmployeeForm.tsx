@@ -17,13 +17,12 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ defaultValues, onSub
   const form = useForm<EmployeeBaseForm>({
     resolver: zodResolver(employeeBaseSchema),
     defaultValues: {
-      employeeCode: employee?.employeeCode || defaultValues?.employeeCode || '',
       firstName: employee?.personalInfo.firstName || defaultValues?.firstName || '',
       lastName: employee?.personalInfo.lastName || defaultValues?.lastName || '',
       position: employee?.employment.position || defaultValues?.position || '',
       department: employee?.employment.department || defaultValues?.department || '',
       basicSalary: employee?.compensation.basicSalary ?? defaultValues?.basicSalary ?? 0,
-      status: employee?.status || 'Active'
+      status: (employee?.status as any) || 'Active'
     }
   });
 
@@ -38,11 +37,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({ defaultValues, onSub
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-xs font-medium">Employee Code</label>
-          <Input {...form.register('employeeCode')} />
-          {error('employeeCode')}
-        </div>
         <div>
           <label className="text-xs font-medium">Position</label>
             <Input {...form.register('position')} />
