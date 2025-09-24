@@ -4,10 +4,15 @@ import { PermanentEmployeeService } from '../../services/api/permanentEmployees'
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Users, FileWarning, DollarSign } from 'lucide-react';
+import { Dialog } from '../../components/ui/dialog';
+import { EmployeeDetails } from '../../components/features/employees/EmployeeDetails';
+import type { Employee } from '../../types/employee';
 
 export const PermanentEmployeeList: React.FC = () => {
   const [employees,setEmployees]=useState<PermanentEmployee[]>([]);
   const [stats,setStats]=useState({total:0,active:0,onLeave:0,totalSalary:0});
+  const [openDetails, setOpenDetails] = useState(false);
+  const [selected, setSelected] = useState<Employee | null>(null);
   useEffect(()=>{ const data=PermanentEmployeeService.getAll(); setEmployees(data); setStats({ total:data.length, active:data.filter(e=>e.status==='Active').length, onLeave:data.filter(e=>e.status==='On Leave').length, totalSalary:data.reduce((s,e)=> s+ e.compensation.totalMonthlySalary,0)}); },[]);
   return <div className="p-6 space-y-6">
     <div>
@@ -24,11 +29,26 @@ export const PermanentEmployeeList: React.FC = () => {
       <table className="min-w-full text-sm">
         <thead className="bg-gray-50"><tr><th className="px-3 py-2 text-left">Code</th><th className="px-3 py-2 text-left">Name</th><th className="px-3 py-2 text-left">Position</th><th className="px-3 py-2 text-left">Qatar ID</th><th className="px-3 py-2 text-left">ID Expiry</th><th className="px-3 py-2 text-right">Salary</th><th className="px-3 py-2 text-left">Status</th></tr></thead>
         <tbody>
-          {employees.map(e=>{ const expDays=Math.floor((new Date(e.documents.qatarId.expiryDate).getTime()-Date.now())/(1000*60*60*24)); return <tr key={e.id} className="border-b last:border-0"> <td className="px-3 py-2">{e.employeeCode}</td><td className="px-3 py-2 whitespace-nowrap">{e.personalInfo.firstName} {e.personalInfo.lastName}</td><td className="px-3 py-2">{e.employment.position}</td><td className="px-3 py-2">{e.documents.qatarId.number}</td><td className="px-3 py-2"><Badge variant={expDays<0? 'destructive': expDays<30? 'outline': 'secondary'}>{expDays<0? 'EXPIRED': expDays+ 'd'}</Badge></td><td className="px-3 py-2 text-right">{e.compensation.totalMonthlySalary.toFixed(0)}</td><td className="px-3 py-2"><Badge variant={e.status==='Active'? 'secondary': 'outline'}>{e.status}</Badge></td></tr>; })}
+          {employees.map(e=>{ const expDays=Math.floor((new Date(e.documents.qatarId.expiryDate).getTime()-Date.now())/(1000*60*60*24)); return <tr key={e.id} className="border-b last:border-0"> 
+            <td className="px-3 py-2">{e.employeeCode}</td>
+            <td className="px-3 py-2 whitespace-nowrap">
+              <button className="text-indigo-600 hover:underline font-medium" onClick={()=> { setSelected(e as Employee); setOpenDetails(true); }}>
+                {e.personalInfo.firstName} {e.personalInfo.lastName}
+              </button>
+            </td>
+            <td className="px-3 py-2">{e.employment.position}</td>
+            <td className="px-3 py-2">{e.documents.qatarId.number}</td>
+            <td className="px-3 py-2"><Badge variant={expDays<0? 'destructive': expDays<30? 'outline': 'secondary'}>{expDays<0? 'EXPIRED': expDays+ 'd'}</Badge></td>
+            <td className="px-3 py-2 text-right">{e.compensation.totalMonthlySalary.toFixed(0)}</td>
+            <td className="px-3 py-2"><Badge variant={e.status==='Active'? 'secondary': 'outline'}>{e.status}</Badge></td>
+          </tr>; })}
           {employees.length===0 && <tr><td colSpan={7} className="px-3 py-6 text-center text-gray-500">No records.</td></tr>}
         </tbody>
       </table>
     </div>
+    <Dialog open={openDetails} onClose={()=> setOpenDetails(false)} title={selected ? `${selected.personalInfo.firstName} ${selected.personalInfo.lastName}` : 'Employee Details'} size="lg">
+      {selected && (<EmployeeDetails employee={selected} />)}
+    </Dialog>
   </div>;
 };
 export default PermanentEmployeeList;
