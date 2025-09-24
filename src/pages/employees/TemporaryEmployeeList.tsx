@@ -1,6 +1,8 @@
 import React,{useEffect,useState} from 'react';
 import { TemporaryEmployee } from '../../types/employee';
 import { TemporaryEmployeeService } from '../../services/api/temporaryEmployees';
+import { getAllTemporaryEmployeesFS } from '../../services/firestore/employees';
+const USE_FS = import.meta.env.VITE_DATA_BACKEND === 'firestore';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Users, FileWarning } from 'lucide-react';
@@ -13,7 +15,7 @@ export const TemporaryEmployeeList: React.FC = () => {
   const [stats,setStats]=useState({total:0,active:0,endingSoon:0});
   const [openDetails, setOpenDetails] = useState(false);
   const [selected, setSelected] = useState<Employee | null>(null);
-  useEffect(()=>{ const data=TemporaryEmployeeService.getAll(); setEmployees(data); setStats({ total:data.length, active:data.filter(e=>e.status==='Active').length, endingSoon:data.filter(e=> { const d=new Date(e.contract.endDate).getTime()-Date.now(); const days=Math.floor(d/(1000*60*60*24)); return days<=30 && days>=0; }).length }); },[]);
+  useEffect(()=>{ (async ()=>{ const data = USE_FS ? await getAllTemporaryEmployeesFS() : TemporaryEmployeeService.getAll(); setEmployees(data); setStats({ total:data.length, active:data.filter(e=>e.status==='Active').length, endingSoon:data.filter(e=> { const d=new Date(e.contract.endDate).getTime()-Date.now(); const days=Math.floor(d/(1000*60*60*24)); return days<=30 && days>=0; }).length }); })(); },[]);
   return <div className="p-6 space-y-6">
     <div><h1 className="text-2xl font-semibold">Temporary Employees</h1><p className="text-xs text-gray-500">Contract / daily wage manpower</p></div>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -28,8 +28,12 @@ export const EmployeeDetailPage: React.FC = () => {
       const emp = await EmployeeService.getById(id);
       if (!emp) { navigate('/employees'); return; }
       setEmployee(emp);
-      setSalaryHistory(SalaryHistoryService.getByEmployee(id));
-      setLeaveRecords(LeaveService.getEmployeeLeaves(id));
+      const [hist, leaves] = await Promise.all([
+        Promise.resolve(SalaryHistoryService.getByEmployee(id) as any),
+        Promise.resolve(LeaveService.getEmployeeLeaves(id) as any)
+      ]);
+      setSalaryHistory(hist as SalaryHistory[]);
+      setLeaveRecords(leaves as LeaveRecord[]);
     })();
   }, [id, navigate]);
 

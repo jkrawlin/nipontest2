@@ -1,25 +1,31 @@
 import React, { useState } from 'react';
 import { PermanentEmployeeService } from '../../../services/api/permanentEmployees';
+import { createPermanentEmployeeFS } from '../../../services/firestore/employees';
+const USE_FS = import.meta.env.VITE_DATA_BACKEND === 'firestore';
 import type { PermanentEmployee } from '../../../types/employee';
 
 interface Props { onCreated?: (emp: PermanentEmployee) => void }
 export const PermanentEmployeeForm: React.FC<Props> = ({ onCreated }) => {
   const [form, setForm] = useState({ firstName:'', lastName:'', department:'', position:'', basic:0, housing:0, transport:0 });
   const [saving, setSaving] = useState(false);
-  const submit = () => {
+  const submit = async () => {
     setSaving(true);
-    const emp = PermanentEmployeeService.create({
+    const payload = {
       personalInfo:{firstName:form.firstName,lastName:form.lastName,fatherName:'',dateOfBirth:'1990-01-01',placeOfBirth:'',nationality:'',religion:'',gender:'Male',maritalStatus:'Single',bloodGroup:'O+'},
       documents:{qatarId:{number:'',issueDate:new Date().toISOString(),expiryDate:new Date().toISOString(),profession:'',sponsor:''},passport:{number:'',issueDate:new Date().toISOString(),expiryDate:new Date().toISOString(),issuePlace:''},visa:{number:'',issueDate:new Date().toISOString(),expiryDate:new Date().toISOString(),type:'Work',sponsor:'',occupation:''},healthCard:{number:'',issueDate:new Date().toISOString(),expiryDate:new Date().toISOString()},laborContract:{number:'',startDate:new Date().toISOString(),authenticated:false}},
-  employment:{position:form.position,department:form.department,joiningDate:new Date().toISOString(),contractType:'Unlimited',workLocation:'Doha'},
+      employment:{position:form.position,department:form.department,joiningDate:new Date().toISOString(),contractType:'Unlimited',workLocation:'Doha'},
       compensation:{basicSalary:form.basic,housingAllowance:form.housing,transportAllowance:form.transport,totalMonthlySalary:0,bankName:'',accountNumber:'',iban:''},
       leave:{annualLeaveEntitlement:21,annualLeaveBalance:21,annualLeaveTaken:0,sickLeaveBalance:14,sickLeaveTaken:0,emergencyLeaveBalance:0,unpaidLeaveDays:0},
       contact:{mobileQatar:'',address:'',emergencyContact:{name:'',relationship:'',phone:''}},
       status:'Active',
       endOfService:{eligible:false,serviceYears:0,gratuityAmount:0,exitPermitRequired:true}
-    });
-    onCreated?.(emp);
-    setSaving(false);
+    } as const;
+    try {
+      const emp = USE_FS ? await createPermanentEmployeeFS(payload as any) : PermanentEmployeeService.create(payload as any);
+      onCreated?.(emp);
+    } finally {
+      setSaving(false);
+    }
   };
   return <div className="space-y-3 p-4 border rounded">
     <h3 className="text-sm font-semibold">New Permanent Employee</h3>

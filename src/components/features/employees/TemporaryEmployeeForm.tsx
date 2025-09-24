@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { TemporaryEmployeeService } from '../../../services/api/temporaryEmployees';
+import { createTemporaryEmployeeFS } from '../../../services/firestore/employees';
+const USE_FS = import.meta.env.VITE_DATA_BACKEND === 'firestore';
 import type { TemporaryEmployee } from '../../../types/employee';
 
 interface Props { onCreated?: (emp: TemporaryEmployee) => void }
 export const TemporaryEmployeeForm: React.FC<Props> = ({ onCreated }) => {
   const [form, setForm] = useState({ firstName:'', lastName:'', client:'', position:'', rate:0, rateType:'Daily' as 'Daily'|'Hourly'|'Monthly' });
   const [saving, setSaving] = useState(false);
-  const submit = () => {
+  const submit = async () => {
     setSaving(true);
-    const emp = TemporaryEmployeeService.create({
+    const payload = {
       personalInfo:{firstName:form.firstName,lastName:form.lastName,fatherName:'',dateOfBirth:'1995-01-01',placeOfBirth:'',nationality:'',religion:'',gender:'Male',maritalStatus:'Single',bloodGroup:'O+'},
       documents:{passport:{number:'',issueDate:new Date().toISOString(),expiryDate:new Date().toISOString(),issuePlace:''}},
       contract:{contractNumber:'',startDate:new Date().toISOString(),endDate:new Date(Date.now()+86400000*30).toISOString(),client:form.client,clientLocation:'',position:form.position,workType:'Daily Wage'},
@@ -17,8 +19,13 @@ export const TemporaryEmployeeForm: React.FC<Props> = ({ onCreated }) => {
       payment:{paymentMethod:'Cash'},
       contact:{mobileQatar:'',address:'',emergencyContact:{name:'',relationship:'',phone:''}},
       status:'Active'
-    });
-    onCreated?.(emp); setSaving(false);
+    } as const;
+    try {
+      const emp = USE_FS ? await createTemporaryEmployeeFS(payload as any) : TemporaryEmployeeService.create(payload as any);
+      onCreated?.(emp);
+    } finally {
+      setSaving(false);
+    }
   };
   return <div className="space-y-3 p-4 border rounded">
     <h3 className="text-sm font-semibold">New Temporary Employee</h3>

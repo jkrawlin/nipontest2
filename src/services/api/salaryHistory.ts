@@ -1,4 +1,6 @@
 import { SalaryHistory } from '../../types/history';
+import { SalaryHistoryFS } from '../firestore/salaryHistory';
+const USE_FS = import.meta.env.VITE_DATA_BACKEND === 'firestore' && import.meta.env.MODE !== 'test';
 
 const mem: Record<string, string> = {};
 const store = {
@@ -9,10 +11,14 @@ const store = {
 const KEY = 'nipon_salary_history';
 
 export const SalaryHistoryService = {
-  getAll(): SalaryHistory[] { const s = store.getItem(KEY); return s ? JSON.parse(s) : []; },
-  getByEmployee(employeeId: string): SalaryHistory[] { return this.getAll().filter(h => h.employeeId === employeeId); },
-  add(record: Omit<SalaryHistory, 'id'>): SalaryHistory {
-    const all = this.getAll();
+  getAll(): SalaryHistory[] | Promise<SalaryHistory[]> { return USE_FS ? SalaryHistoryFS.getAll() : (store.getItem(KEY) ? JSON.parse(store.getItem(KEY) as string) : []); },
+  getByEmployee(employeeId: string): SalaryHistory[] | Promise<SalaryHistory[]> {
+    if (USE_FS) return SalaryHistoryFS.getByEmployee(employeeId);
+    return (this.getAll() as SalaryHistory[]).filter(h => h.employeeId === employeeId);
+  },
+  add(record: Omit<SalaryHistory, 'id'>): SalaryHistory | Promise<SalaryHistory> {
+    if (USE_FS) return SalaryHistoryFS.add(record);
+    const all = (this.getAll() as SalaryHistory[]);
     const newRec: SalaryHistory = { ...record, id: crypto.randomUUID() };
     all.push(newRec); store.setItem(KEY, JSON.stringify(all)); return newRec;
   }

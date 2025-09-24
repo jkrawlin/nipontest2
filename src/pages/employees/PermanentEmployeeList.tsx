@@ -1,6 +1,8 @@
 import React,{useEffect,useState} from 'react';
 import { PermanentEmployee } from '../../types/employee';
 import { PermanentEmployeeService } from '../../services/api/permanentEmployees';
+import { getAllPermanentEmployeesFS } from '../../services/firestore/employees';
+const USE_FS = import.meta.env.VITE_DATA_BACKEND === 'firestore';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Users, FileWarning, DollarSign } from 'lucide-react';
@@ -13,7 +15,7 @@ export const PermanentEmployeeList: React.FC = () => {
   const [stats,setStats]=useState({total:0,active:0,onLeave:0,totalSalary:0});
   const [openDetails, setOpenDetails] = useState(false);
   const [selected, setSelected] = useState<Employee | null>(null);
-  useEffect(()=>{ const data=PermanentEmployeeService.getAll(); setEmployees(data); setStats({ total:data.length, active:data.filter(e=>e.status==='Active').length, onLeave:data.filter(e=>e.status==='On Leave').length, totalSalary:data.reduce((s,e)=> s+ e.compensation.totalMonthlySalary,0)}); },[]);
+  useEffect(()=>{ (async ()=>{ const data = USE_FS ? await getAllPermanentEmployeesFS() : PermanentEmployeeService.getAll(); setEmployees(data); setStats({ total:data.length, active:data.filter(e=>e.status==='Active').length, onLeave:data.filter(e=>e.status==='On Leave').length, totalSalary:data.reduce((s,e)=> s+ e.compensation.totalMonthlySalary,0)}); })(); },[]);
   return <div className="p-6 space-y-6">
     <div>
       <h1 className="text-2xl font-semibold">Permanent Employees</h1>

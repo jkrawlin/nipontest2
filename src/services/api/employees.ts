@@ -5,6 +5,9 @@
 import type { Employee, PermanentEmployee, TemporaryEmployee, ExpiringDocument } from '../../types/employee';
 import { PermanentEmployeeService } from './permanentEmployees';
 import { TemporaryEmployeeService } from './temporaryEmployees';
+import { getAllPermanentEmployeesFS, getAllTemporaryEmployeesFS } from '../firestore/employees';
+
+const USE_FS = import.meta.env.VITE_DATA_BACKEND === 'firestore' && import.meta.env.MODE !== 'test';
 
 export interface EmployeeQueryParams { page?: number; pageSize?: number; search?: string }
 export interface EmployeeListResponse { employees: Employee[]; count: number }
@@ -41,14 +44,35 @@ function projectExpiries(permanent: PermanentEmployee[], temporary: TemporaryEmp
 export const EmployeeService = {
   initialize() {/* no-op for shim */},
   async list(params: EmployeeQueryParams = {}): Promise<EmployeeListResponse> {
-    const all = [...PermanentEmployeeService.getAll(), ...TemporaryEmployeeService.getAll()];
+    const all: Employee[] = USE_FS
+      ? [
+          ...await getAllPermanentEmployeesFS(),
+          ...await getAllTemporaryEmployeesFS()
+        ]
+      : [
+          ...PermanentEmployeeService.getAll(),
+          ...TemporaryEmployeeService.getAll()
+        ];
     const filtered = searchFilter(all, params.search);
     const pageSize = params.pageSize ?? 20; const page = params.page && params.page>0 ? params.page : 1; const start=(page-1)*pageSize; const end=start+pageSize;
     return { employees: filtered.slice(start,end), count: filtered.length };
   },
-  async getAllEmployees(): Promise<Employee[]> { return [...PermanentEmployeeService.getAll(), ...TemporaryEmployeeService.getAll()]; },
+  async getAllEmployees(): Promise<Employee[]> {
+    if (USE_FS) return [
+      ...await getAllPermanentEmployeesFS(),
+      ...await getAllTemporaryEmployeesFS()
+    ];
+    return [...PermanentEmployeeService.getAll(), ...TemporaryEmployeeService.getAll()];
+  },
   async getActiveEmployees(): Promise<Employee[]> { return (await this.getAllEmployees()).filter(e=> e.status==='Active'); },
-  async getExpiringDocuments(withinDays=90): Promise<ExpiringDocument[]> { return projectExpiries(PermanentEmployeeService.getAll(), TemporaryEmployeeService.getAll(), withinDays); },
+  async getExpiringDocuments(withinDays=90): Promise<ExpiringDocument[]> {
+    if (USE_FS) {
+      const perms = await getAllPermanentEmployeesFS();
+      const temps = await getAllTemporaryEmployeesFS();
+      return projectExpiries(perms, temps, withinDays);
+    }
+    return projectExpiries(PermanentEmployeeService.getAll(), TemporaryEmployeeService.getAll(), withinDays);
+  },
   async recalcEndOfServiceAll() { /* To be implemented if gratuity recalculation changes */ },
   async create() { throw new Error('Use PermanentEmployeeService.create or TemporaryEmployeeService.create'); },
   async update() { throw new Error('Use specific service update method'); },
