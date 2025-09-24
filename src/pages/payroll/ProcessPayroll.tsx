@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Decimal } from 'decimal.js';
 import { useNavigate } from 'react-router-dom';
 import { EmployeeService } from '../../services/api/employees';
+import { PayrollService } from '../../services/api/payroll';
 import { formatCurrency } from '../../lib/formatters';
 import type { PayrollBatch, SalaryCalculation } from '../../types/payroll';
 import { Check, Calendar, Clock, Calculator, PlusCircle, CheckCircle, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -59,14 +60,62 @@ const PeriodSelectionStep: React.FC<StepComponentProps> = ({ onNext, payrollData
 	);
 };
 
-const AttendanceReviewStep: React.FC<StepComponentProps> = ({ onNext, onBack }) => {
+const AttendanceReviewStep: React.FC<StepComponentProps> = ({ onNext, onBack, payrollData, setPayrollData }) => {
+	const [rows, setRows] = useState<Array<{ id: string; name: string; presentDays: number; absentDays: number; overtimeHours: number }>>([]);
+	const [loading, setLoading] = useState(true);
+	useEffect(() => { (async () => {
+		const emps = await EmployeeService.getActiveEmployees();
+		const mapped = emps.map(e => ({
+			id: e.id,
+			name: `${e.personalInfo.firstName} ${e.personalInfo.lastName}`,
+			presentDays: payrollData.attendance?.[e.id]?.presentDays ?? 30,
+			absentDays: payrollData.attendance?.[e.id]?.absentDays ?? 0,
+			overtimeHours: payrollData.attendance?.[e.id]?.overtimeHours ?? 0
+		}));
+		setRows(mapped);
+		setLoading(false);
+	})(); }, []);
+
+	const updateCell = (id: string, field: 'presentDays' | 'absentDays' | 'overtimeHours', value: number) => {
+		setRows(r => r.map(row => row.id === id ? { ...row, [field]: value } : row));
+	};
+
+	const handleContinue = () => {
+		const attendance: any = {};
+		rows.forEach(r => { attendance[r.id] = { presentDays: r.presentDays, absentDays: r.absentDays, overtimeHours: r.overtimeHours }; });
+		setPayrollData(p => ({ ...p, attendance }));
+		onNext({ attendance });
+	};
 	return (
 		<div className="space-y-4">
 			<h3 className="text-lg font-semibold">Review Attendance</h3>
-			<p className="text-sm text-gray-600">(Placeholder) – Integrate attendance import/edit here.</p>
+			{loading ? <div className="text-sm text-gray-500">Loading employees…</div> : (
+				<div className="overflow-x-auto border rounded">
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Employee</TableHead>
+								<TableHead className="text-center">Present Days</TableHead>
+								<TableHead className="text-center">Absent Days</TableHead>
+								<TableHead className="text-center">Overtime Hrs</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{rows.map(r => (
+								<TableRow key={r.id}>
+									<TableCell className="font-medium whitespace-nowrap">{r.name}</TableCell>
+									<TableCell className="text-center"><input type="number" min={0} max={31} value={r.presentDays} onChange={e => updateCell(r.id,'presentDays', parseInt(e.target.value||'0',10))} className="w-20 border rounded px-1 py-0.5 text-sm text-center"/></TableCell>
+									<TableCell className="text-center"><input type="number" min={0} max={31} value={r.absentDays} onChange={e => updateCell(r.id,'absentDays', parseInt(e.target.value||'0',10))} className="w-20 border rounded px-1 py-0.5 text-sm text-center"/></TableCell>
+									<TableCell className="text-center"><input type="number" min={0} value={r.overtimeHours} onChange={e => updateCell(r.id,'overtimeHours', parseInt(e.target.value||'0',10))} className="w-24 border rounded px-1 py-0.5 text-sm text-center"/></TableCell>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+				</div>
+			)}
 			<div className="flex justify-between pt-4">
 				<Button variant="outline" onClick={onBack}><ChevronLeft className="mr-1 h-4 w-4"/>Back</Button>
-				<Button onClick={() => onNext()}>Continue<ChevronRight className="ml-1 h-4 w-4"/></Button>
+				<Button onClick={handleContinue}>Continue<ChevronRight className="ml-1 h-4 w-4"/></Button>
 			</div>
 		</div>
 	);
@@ -186,36 +235,46 @@ const AdjustmentsStep: React.FC<StepComponentProps> = ({ onNext, onBack }) => (
 		</div>
 	</div>
 );
-const ReviewApprovalStep: React.FC<StepComponentProps> = ({ onNext, onBack }) => (
-	<div className="space-y-4">
-		<h3 className="text-lg font-semibold">Review & Approve</h3>
-		<p className="text-sm text-gray-600">(Placeholder) – show summary, totals, compliance checks.</p>
-		<div className="flex justify-between pt-4">
-			<Button variant="outline" onClick={onBack}><ChevronLeft className="mr-1 h-4 w-4"/>Back</Button>
-			<Button onClick={() => onNext()}>Approve & Generate Payslips<Check className="ml-1 h-4 w-4"/></Button>
+const ReviewApprovalStep: React.FC<StepComponentProps> = ({ onNext, onBack, payrollData }) => {
+	const total = payrollData.calculations?.reduce((s,c)=> s + c.net, 0) || 0;
+	return (
+		<div className="space-y-4">
+			<h3 className="text-lg font-semibold">Review & Approve</h3>
+			<div className="border rounded p-4 bg-gray-50 text-sm space-y-2">
+				<div className="flex justify-between"><span>Period:</span><span>{payrollData.month}/{payrollData.year}</span></div>
+				<div className="flex justify-between"><span>Employees:</span><span>{payrollData.calculations?.length || 0}</span></div>
+				<div className="flex justify-between font-medium"><span>Total Net Payroll:</span><span>{formatCurrency(total)}</span></div>
+				<div className="pt-2 text-xs text-gray-500">(Future) Add compliance checks: negative nets, abnormal OT, allowance caps.</div>
+			</div>
+			<div className="flex justify-between pt-4">
+				<Button variant="outline" onClick={onBack}><ChevronLeft className="mr-1 h-4 w-4"/>Back</Button>
+				<Button onClick={() => onNext({ approved: true })}>Approve & Generate Payslips<Check className="ml-1 h-4 w-4"/></Button>
+			</div>
 		</div>
-	</div>
-);
-const PayslipGenerationStep: React.FC<StepComponentProps> = ({ onBack }) => (
-	<div className="space-y-4">
-		<h3 className="text-lg font-semibold">Payslips</h3>
-		<p className="text-sm text-gray-600">(Placeholder) – payslip generation & download queue.</p>
-		<div className="flex justify-start pt-4">
-			<Button variant="outline" onClick={onBack}><ChevronLeft className="mr-1 h-4 w-4"/>Back</Button>
+	);
+};
+const PayslipGenerationStep: React.FC<StepComponentProps> = ({ onBack, payrollData }) => {
+	return (
+		<div className="space-y-4">
+			<h3 className="text-lg font-semibold">Payslips</h3>
+			<p className="text-sm text-gray-600">(Placeholder) – payslip dataset is ready (batch {payrollData.id}). Future: generate PDF / WPS file.</p>
+			<div className="flex gap-3">
+				<Button variant="outline" onClick={onBack}><ChevronLeft className="mr-1 h-4 w-4"/>Back</Button>
+				<Button onClick={() => window.history.back()}>Finish</Button>
+			</div>
 		</div>
-	</div>
-);
+	);
+};
 
 export const ProcessPayrollPage: React.FC = () => {
 	const navigate = useNavigate();
 	const [step, setStep] = useState(0);
-	const [payrollData, setPayrollData] = useState<PayrollBatch>({
-		month: new Date().getMonth() + 1,
-		year: new Date().getFullYear(),
-		employees: [],
-		totalAmount: new Decimal(0),
-		status: 'draft'
-	});
+		const initialMonth = new Date().getMonth() + 1;
+		const initialYear = new Date().getFullYear();
+		const [payrollData, setPayrollData] = useState<PayrollBatch>(() => {
+			const draft = PayrollService.getDraft(initialMonth, initialYear) || PayrollService.createDraft(initialMonth, initialYear);
+			return draft;
+		});
 
 	const steps = [
 		{ title: 'Select Period', icon: Calendar },
@@ -256,10 +315,10 @@ export const ProcessPayrollPage: React.FC = () => {
 				<CardContent className="p-6 space-y-4">
 					{step === 0 && <PeriodSelectionStep payrollData={payrollData} setPayrollData={setPayrollData} onNext={() => setStep(1)} />}
 					{step === 1 && <AttendanceReviewStep payrollData={payrollData} setPayrollData={setPayrollData} onBack={() => setStep(0)} onNext={() => setStep(2)} />}
-					{step === 2 && <SalaryCalculationStep payrollData={payrollData} onBack={() => setStep(1)} onNext={(d) => { setPayrollData(p => ({ ...p, calculations: d.calculations })); setStep(3); }} />}
+								{step === 2 && <SalaryCalculationStep payrollData={payrollData} onBack={() => setStep(1)} onNext={(d) => { setPayrollData(p => { const updated = { ...p, calculations: d.calculations }; PayrollService.updateCalculations(p.id!, d.calculations); return updated; }); setStep(3); }} />}
 					{step === 3 && <AdjustmentsStep payrollData={payrollData} setPayrollData={setPayrollData} onBack={() => setStep(2)} onNext={() => setStep(4)} />}
-						{step === 4 && <ReviewApprovalStep payrollData={payrollData} setPayrollData={setPayrollData} onBack={() => setStep(3)} onNext={() => setStep(5)} />}
-					{step === 5 && <PayslipGenerationStep payrollData={payrollData} setPayrollData={setPayrollData} onBack={() => setStep(4)} onNext={() => navigate('/payroll/history')} />}
+									{step === 4 && <ReviewApprovalStep payrollData={payrollData} setPayrollData={setPayrollData} onBack={() => setStep(3)} onNext={() => { setPayrollData(p => { const updated = { ...p, status: 'approved' as const }; PayrollService.approve(p.id!); return updated; }); setStep(5); }} />}
+								{step === 5 && <PayslipGenerationStep payrollData={payrollData} setPayrollData={setPayrollData} onBack={() => setStep(4)} onNext={() => { setPayrollData(p => { const updated = { ...p, status: 'processed' as const }; PayrollService.markProcessed(p.id!); return updated; }); navigate('/payroll/history'); }} />}
 				</CardContent>
 			</Card>
 		</div>
