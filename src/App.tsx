@@ -4,6 +4,8 @@ import { useAuthStore } from './stores/authStore';
 const LoginPage = lazy(() => import('./pages/auth/Login').then(m => ({ default: m.LoginPage })));
 const DashboardPage = lazy(() => import('./pages/dashboard/Dashboard').then(m => ({ default: m.DashboardPage })));
 const EmployeeListPage = lazy(() => import('./pages/employees/EmployeeList').then(m => ({ default: m.EmployeeListPage })));
+const PermanentEmployeeList = lazy(() => import('./pages/employees/PermanentEmployeeList').then(m => ({ default: m.PermanentEmployeeList })));
+const TemporaryEmployeeList = lazy(() => import('./pages/employees/TemporaryEmployeeList').then(m => ({ default: m.TemporaryEmployeeList })));
 const AddEmployeePage = lazy(() => import('./pages/employees/AddEmployee').then(m => ({ default: m.AddEmployeePage })));
 const ImportEmployeesPage = lazy(() => import('./pages/employees/ImportEmployees').then(m => ({ default: m.ImportEmployeesPage })));
 const EmployeeDocumentsPage = lazy(() => import('./pages/employees/Documents').then(m => ({ default: m.EmployeeDocumentsPage })));
@@ -47,7 +49,9 @@ const App: React.FC = () => (
             </Protected>
           }
         />
-        <Route path="/employees" element={<Protected><DashboardLayout><EmployeeListPage /></DashboardLayout></Protected>} />
+  <Route path="/employees" element={<Protected><DashboardLayout><EmployeeListPage /></DashboardLayout></Protected>} />
+  <Route path="/employees/permanent" element={<Protected><DashboardLayout><PermanentEmployeeList /></DashboardLayout></Protected>} />
+  <Route path="/employees/temporary" element={<Protected><DashboardLayout><TemporaryEmployeeList /></DashboardLayout></Protected>} />
         <Route path="/employees/new" element={<Protected><DashboardLayout><AddEmployeePage /></DashboardLayout></Protected>} />
         <Route path="/employees/import" element={<Protected><DashboardLayout><ImportEmployeesPage /></DashboardLayout></Protected>} />
   <Route path="/employees/documents" element={<Protected><DashboardLayout><EmployeeDocumentsPage /></DashboardLayout></Protected>} />

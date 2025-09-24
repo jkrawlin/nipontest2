@@ -1,190 +1,70 @@
-// Expanded Qatar-compliant employee domain (superset of earlier model).
+// CRITICAL SEPARATION: Permanent vs Temporary employees
+export type EmployeeType = 'Permanent' | 'Temporary';
 
-export interface ExpiringDocument {
-  employeeId: string;
-  employeeName: string;
-  documentType: string;
-  documentNumber?: string;
-  expiryDate: Date;
-  daysRemaining: number;
-  status: 'expired' | 'critical' | 'warning' | 'upcoming' | 'expiring-soon' | 'expiring' | 'valid';
-}
-
-export interface Employee {
+export interface BaseEmployee {
   id: string;
-  employeeCode: string; // EMP-YYYY-NNNN
-
+  employeeCode: string;
+  employeeType: EmployeeType;
   personalInfo: {
     firstName: string;
     lastName: string;
     firstNameArabic?: string;
     lastNameArabic?: string;
-    fatherName?: string;
-    dateOfBirth: Date;
-    placeOfBirth?: string;
+    fatherName: string;
+    motherName?: string;
+    dateOfBirth: string;
+    placeOfBirth: string;
     nationality: string;
-    religion?: string;
+    religion: string;
     gender: 'Male' | 'Female';
     maritalStatus: 'Single' | 'Married' | 'Divorced' | 'Widowed';
-    bloodGroup?: string;
+    bloodGroup: string;
     photoUrl?: string;
   };
-
-  documents: {
-    qatarId: {
-      number: string;
-      issueDate: Date;
-      expiryDate: Date;
-      profession: string;
-      sponsor?: string;
-      zone?: string;
-      street?: string;
-      building?: string;
-      fileUrl?: string;
-    };
-    passport: {
-      number: string;
-      issueDate: Date;
-      expiryDate: Date;
-      issuePlace?: string;
-      nationality: string;
-      fileUrl?: string;
-    };
-    visa: {
-      number: string;
-      issueDate: Date;
-      expiryDate: Date;
-      type: 'Work Visa' | 'Family Visa' | 'Business Visa' | 'Visit Visa' | 'Work' | 'Family' | 'Business Visit';
-      sponsorId?: string;
-      sponsorName?: string;
-      occupation?: string;
-      fileUrl?: string;
-    };
-    healthCard?: {
-      number: string;
-      issueDate?: Date;
-      expiryDate: Date;
-      bloodGroup?: string;
-      fileUrl?: string;
-    };
-    laborContract?: {
-      number: string;
-      startDate: Date;
-      endDate?: Date;
-      authenticated?: boolean;
-      fileUrl?: string;
-    };
-    entryPermit?: { number: string; issueDate: Date; fileUrl?: string };
-  };
-
-  employment: {
-    position: string;
-    positionArabic?: string;
-    department: string;
-    section?: string;
-    joiningDate: Date;
-    confirmationDate?: Date;
-    contractStartDate?: Date; // new fields; if undefined fallback to joiningDate
-    contractEndDate?: Date;
-    contractType: 'Unlimited' | 'Limited' | 'Permanent' | 'Contract' | 'Temporary';
-    employmentType?: 'Full Time' | 'Part Time' | 'Contract';
-    workLocation: string;
-    costCenter?: string;
-    reportingTo?: string;
-    qatarExperience?: number;
-    totalExperience?: number;
-    employmentStatus?: 'Probation' | 'Confirmed' | 'Notice Period';
-  };
-
-  compensation: {
-    basicSalary: number;
-    housingAllowance: number;
-    transportAllowance: number;
-    foodAllowance?: number;
-    phoneAllowance?: number; // alias of telephoneAllowance
-    telephoneAllowance?: number; // backward compat
-    otherAllowances?: number;
-    totalSalary: number; // new canonical total
-    totalMonthlySalary?: number; // legacy name (kept for backward compatibility)
-    bankName: string;
-    bankNameArabic?: string;
-    branchName?: string;
-    accountNumber: string;
-    iban: string;
-    cardNumber?: string;
-    wpsEmployerId?: string;
-    wpsReferenceNumber?: string;
-    paymentMethod?: 'Bank Transfer' | 'Cash' | 'Cheque';
-  };
-
-  leave: {
-    annualLeaveEntitlement: number; // calculated (21 / 30)
-    annualLeaveBalance: number;
-    annualLeaveUsed?: number; // legacy alias
-    annualLeaveTaken?: number; // new name
-    sickLeaveBalance: number;
-    sickLeaveUsed?: number; // legacy alias
-    sickLeaveTaken?: number; // new name
-    emergencyLeaveBalance?: number;
-    emergencyLeaveTaken?: number;
-    unpaidLeaveDays: number;
-    publicHolidaysEntitled?: number;
-    lastLeaveDate?: Date;
-    leaveReturnDate?: Date;
-  };
-
   contact: {
-    mobileQatar: string; // +974 XXXX XXXX
+    mobileQatar: string;
     mobileHome?: string;
-    email: string;
-    personalEmail?: string;
-    qatarAddress: {
-      zone?: string;
-      street?: string;
-      building?: string;
-      unitNumber?: string;
-      poBox?: string;
-      area?: string;
-    };
-    homeCountryAddress: string;
-    emergencyContact: {
-      name: string;
-      nameArabic?: string;
-      relationship: string;
-      mobileQatar?: string;
-      mobileHome?: string;
-      address: string;
-    };
+    email?: string;
+    address: string;
+    emergencyContact: { name: string; relationship: string; phone: string };
   };
-
-  endOfService: {
-    eligible: boolean;
-    totalServiceYears: number;
-    gratuityAmount: number;
-    eligibleAmount?: number; // legacy amount
-    yearsOfService?: number; // legacy years
-    lastWorkingDate?: Date;
-    noticePeriod?: number;
-    exitPermitRequired: boolean;
-    flightTicketProvided: boolean;
-    finalSettlementStatus?: 'Pending' | 'Processing' | 'Completed';
-    lastCalculationDate?: Date;
-  };
-
-  status: 'Active' | 'On Leave' | 'Notice Period' | 'Terminated' | 'Absconded';
-  statusReason?: string;
-  blacklisted?: boolean;
-  rehirable?: boolean;
-  terminationDate?: Date;
-  terminationReason?: string;
-  finalSettlementAmount?: number;
-
-  createdAt: Date;
-  createdBy: string;
-  updatedAt: Date;
-  updatedBy: string;
-  lastModifiedBy?: string; // legacy alias
-  notes?: string;
+  status: 'Active' | 'On Leave' | 'Terminated' | 'Contract Ended';
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface DocumentExpiry extends ExpiringDocument {}
+export interface PermanentEmployee extends BaseEmployee {
+  employeeType: 'Permanent';
+  documents: {
+    qatarId: { number: string; issueDate: string; expiryDate: string; profession: string; sponsor: string; fileUrl?: string };
+    passport: { number: string; issueDate: string; expiryDate: string; issuePlace: string; fileUrl?: string };
+    visa: { number: string; issueDate: string; expiryDate: string; type: 'Work' | 'Family'; sponsor: string; occupation: string; fileUrl?: string };
+    healthCard: { number: string; issueDate: string; expiryDate: string; fileUrl?: string };
+    laborContract: { number: string; startDate: string; authenticated: boolean; fileUrl?: string };
+  };
+  employment: {
+    position: string; positionArabic: string; department: string; joiningDate: string; confirmationDate?: string;
+    contractType: 'Unlimited' | 'Limited'; contractEndDate?: string; workLocation: string; reportingTo?: string;
+  };
+  compensation: {
+    basicSalary: number; housingAllowance: number; transportAllowance: number; foodAllowance?: number; phoneAllowance?: number; otherAllowances?: number; totalMonthlySalary: number; bankName: string; accountNumber: string; iban: string;
+  };
+  leave: { annualLeaveEntitlement: number; annualLeaveBalance: number; annualLeaveTaken: number; sickLeaveBalance: number; sickLeaveTaken: number; emergencyLeaveBalance: number; unpaidLeaveDays: number };
+  endOfService: { eligible: boolean; serviceYears: number; gratuityAmount: number; lastWorkingDate?: string; exitPermitRequired: boolean };
+}
+
+export interface TemporaryEmployee extends BaseEmployee {
+  employeeType: 'Temporary';
+  documents: {
+    passport: { number: string; issueDate: string; expiryDate: string; issuePlace: string; fileUrl?: string };
+    visa?: { number: string; issueDate: string; expiryDate: string; type: 'Visit' | 'Business' | 'Tourist'; sponsor: string; fileUrl?: string };
+    workPermit?: { number: string; issueDate: string; expiryDate: string; fileUrl?: string };
+  };
+  contract: { contractNumber: string; startDate: string; endDate: string; client: string; clientLocation: string; position: string; workType: 'Daily Wage' | 'Hourly' | 'Project Based'; contractFileUrl?: string };
+  compensation: { rateType: 'Daily' | 'Hourly' | 'Monthly'; rate: number; overtimeRate?: number; foodAllowance?: number; transportProvided: boolean; accommodationProvided: boolean; totalEarnings?: number };
+  attendance: { totalDaysWorked: number; totalHoursWorked?: number; overtimeHours?: number; lastWorkDate?: string };
+  payment: { paymentMethod: 'Cash' | 'Bank Transfer'; bankName?: string; accountNumber?: string; lastPaymentDate?: string; lastPaymentAmount?: number };
+}
+
+export type Employee = PermanentEmployee | TemporaryEmployee;
+

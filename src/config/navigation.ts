@@ -1,4 +1,4 @@
-import { LucideIcon, LayoutDashboard, Users, FileText, Calculator, DollarSign, Settings, Archive } from 'lucide-react';
+import { LucideIcon, LayoutDashboard, Users, FileText, Calculator, DollarSign, Settings, Archive, Clock } from 'lucide-react';
 
 export interface NavChildItem {
   title: string;
@@ -16,26 +16,23 @@ export interface NavItem {
 
 export const navigationItems: NavItem[] = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', permission: 'view_dashboard' },
-  {
-    title: 'Employees', icon: Users, path: '/employees', permission: 'view_employees',
-    children: [
-      { title: 'All Employees', path: '/employees' },
-      { title: 'Add Employee', path: '/employees/new', permission: 'create_employee' },
-      { title: 'Import Data', path: '/employees/import' },
-  { title: 'Documents', path: '/employees/documents' },
-  { title: 'Leave', path: '/employees/leave' },
-  { title: 'End of Service', path: '/employees/eos' }
-    ]
-  },
-  {
-    title: 'Payroll', icon: Calculator, path: '/payroll', permission: 'view_payroll',
-    children: [
-      { title: 'Process Payroll', path: '/payroll/process', permission: 'process_payroll' },
-      { title: 'Payroll History', path: '/payroll/history' },
-      { title: 'Payslips', path: '/payroll/payslips' },
-      { title: 'Salary Adjustments', path: '/payroll/adjustments' }
-    ]
-  },
+  { title: 'Employees', icon: Users, path: '/employees', permission: 'view_employees', children: [
+    { title: 'Permanent Employees', path: '/employees/permanent', },
+    { title: 'Temporary Employees', path: '/employees/temporary', },
+    { title: 'All Employees', path: '/employees/all' },
+    { title: 'Document Expiry', path: '/employees/documents' },
+  ]},
+  { title: 'Payroll', icon: Calculator, path: '/payroll', permission: 'view_payroll', children: [
+    { title: 'Permanent Payroll', path: '/payroll/permanent' },
+    { title: 'Temporary Payroll', path: '/payroll/temporary' },
+    { title: 'WPS Generation', path: '/payroll/wps' },
+    { title: 'Payroll History', path: '/payroll/history' },
+  ]},
+  { title: 'Attendance', icon: Clock, path: '/attendance', permission: 'view_attendance', children: [
+    { title: 'Daily Attendance', path: '/attendance/daily' },
+    { title: 'Temporary Workers Log', path: '/attendance/temporary' },
+    { title: 'Import Attendance', path: '/attendance/import' },
+  ]},
   {
     title: 'Accounts', icon: DollarSign, path: '/accounts', permission: 'view_accounts',
     children: [
