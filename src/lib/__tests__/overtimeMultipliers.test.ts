@@ -6,7 +6,7 @@ describe('Overtime multiplier scenarios (permanent)', () => {
   const emp = PermanentEmployeeService.create({
     personalInfo:{firstName:'OT',lastName:'Test',fatherName:'',dateOfBirth:'1990-01-01',placeOfBirth:'',nationality:'',religion:'',gender:'Male',maritalStatus:'Single',bloodGroup:'O+'},
     documents:{qatarId:{number:'',issueDate:new Date().toISOString(),expiryDate:new Date().toISOString(),profession:'',sponsor:''},passport:{number:'',issueDate:new Date().toISOString(),expiryDate:new Date().toISOString(),issuePlace:''},visa:{number:'',issueDate:new Date().toISOString(),expiryDate:new Date().toISOString(),type:'Work',sponsor:'',occupation:''},healthCard:{number:'',issueDate:new Date().toISOString(),expiryDate:new Date().toISOString()},laborContract:{number:'',startDate:new Date().toISOString(),authenticated:false}},
-    employment:{position:'',positionArabic:'',department:'',joiningDate:new Date().toISOString(),contractType:'Unlimited',workLocation:'Doha'},
+  employment:{position:'',department:'',joiningDate:new Date().toISOString(),contractType:'Unlimited',workLocation:'Doha'},
     compensation:{basicSalary:3000,housingAllowance:0,transportAllowance:0,totalMonthlySalary:0,bankName:'',accountNumber:'',iban:''},
     leave:{annualLeaveEntitlement:21,annualLeaveBalance:21,annualLeaveTaken:0,sickLeaveBalance:14,sickLeaveTaken:0,emergencyLeaveBalance:0,unpaidLeaveDays:0},
     contact:{mobileQatar:'',address:'',emergencyContact:{name:'',relationship:'',phone:''}},

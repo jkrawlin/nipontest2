@@ -178,7 +178,6 @@ export const EmployeeDetails: React.FC<EmployeeDetailsProps> = ({ employee }) =>
           <CardTitle>Personal & Contact</CardTitle>
         </CardHeader>
         <CardContent>
-          <Row label="Name (Arabic)">{[employee.personalInfo.firstNameArabic, employee.personalInfo.lastNameArabic].filter(Boolean).join(' ') || '-'}</Row>
           <Row label="Father Name">{employee.personalInfo.fatherName}</Row>
           {employee.personalInfo.motherName && <Row label="Mother Name">{employee.personalInfo.motherName}</Row>}
           <Row label="DOB">{employee.personalInfo.dateOfBirth}</Row>

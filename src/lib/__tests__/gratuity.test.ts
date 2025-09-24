@@ -8,7 +8,7 @@ function makeEmployee(years: number, basic: number) {
   return PermanentEmployeeService.create({
     personalInfo:{firstName:'Test',lastName:'Emp',fatherName:'F',dateOfBirth:'1990-01-01',placeOfBirth:'',nationality:'',religion:'',gender:'Male',maritalStatus:'Single',bloodGroup:'O+'},
     documents:{qatarId:{number:'',issueDate:now.toISOString(),expiryDate:now.toISOString(),profession:'',sponsor:''},passport:{number:'',issueDate:now.toISOString(),expiryDate:now.toISOString(),issuePlace:''},visa:{number:'',issueDate:now.toISOString(),expiryDate:now.toISOString(),type:'Work',sponsor:'',occupation:''},healthCard:{number:'',issueDate:now.toISOString(),expiryDate:now.toISOString()},laborContract:{number:'',startDate:join,authenticated:false}},
-    employment:{position:'',positionArabic:'',department:'',joiningDate:join,contractType:'Unlimited',workLocation:'Doha'},
+  employment:{position:'',department:'',joiningDate:join,contractType:'Unlimited',workLocation:'Doha'},
     compensation:{basicSalary:basic,housingAllowance:0,transportAllowance:0,totalMonthlySalary:0,bankName:'',accountNumber:'',iban:''},
     leave:{annualLeaveEntitlement:21,annualLeaveBalance:21,annualLeaveTaken:0,sickLeaveBalance:14,sickLeaveTaken:0,emergencyLeaveBalance:0,unpaidLeaveDays:0},
     contact:{mobileQatar:'',address:'',emergencyContact:{name:'',relationship:'',phone:''}},

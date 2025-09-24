@@ -8,8 +8,6 @@ export interface BaseEmployee {
   personalInfo: {
     firstName: string;
     lastName: string;
-    firstNameArabic?: string;
-    lastNameArabic?: string;
     fatherName: string;
     motherName?: string;
     dateOfBirth: string;
@@ -43,7 +41,7 @@ export interface PermanentEmployee extends BaseEmployee {
     laborContract: { number: string; startDate: string; authenticated: boolean; fileUrl?: string };
   };
   employment: {
-    position: string; positionArabic: string; department: string; joiningDate: string; confirmationDate?: string;
+    position: string; department: string; joiningDate: string; confirmationDate?: string;
     contractType: 'Unlimited' | 'Limited'; contractEndDate?: string; workLocation: string; reportingTo?: string;
   };
   compensation: {
