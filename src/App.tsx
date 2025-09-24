@@ -7,6 +7,8 @@ const EmployeeListPage = lazy(() => import('./pages/employees/EmployeeList').the
 const AddEmployeePage = lazy(() => import('./pages/employees/AddEmployee').then(m => ({ default: m.AddEmployeePage })));
 const ImportEmployeesPage = lazy(() => import('./pages/employees/ImportEmployees').then(m => ({ default: m.ImportEmployeesPage })));
 const EmployeeDocumentsPage = lazy(() => import('./pages/employees/Documents').then(m => ({ default: m.EmployeeDocumentsPage })));
+const EmployeeLeavePage = lazy(() => import('./pages/employees/Leave').then(m => ({ default: m.EmployeeLeavePage })));
+const EndOfServicePage = lazy(() => import('./pages/employees/EndOfService').then(m => ({ default: m.EndOfServicePage })));
 const PayrollListPage = lazy(() => import('./pages/payroll/PayrollList').then(m => ({ default: m.PayrollListPage })));
 const ProcessPayrollPage = lazy(() => import('./pages/payroll/ProcessPayroll').then(m => ({ default: m.ProcessPayrollPage })));
 const PayrollHistoryPage = lazy(() => import('./pages/payroll/PayrollHistory').then(m => ({ default: m.PayrollHistoryPage })));
@@ -48,7 +50,9 @@ const App: React.FC = () => (
         <Route path="/employees" element={<Protected><DashboardLayout><EmployeeListPage /></DashboardLayout></Protected>} />
         <Route path="/employees/new" element={<Protected><DashboardLayout><AddEmployeePage /></DashboardLayout></Protected>} />
         <Route path="/employees/import" element={<Protected><DashboardLayout><ImportEmployeesPage /></DashboardLayout></Protected>} />
-        <Route path="/employees/documents" element={<Protected><DashboardLayout><EmployeeDocumentsPage /></DashboardLayout></Protected>} />
+  <Route path="/employees/documents" element={<Protected><DashboardLayout><EmployeeDocumentsPage /></DashboardLayout></Protected>} />
+  <Route path="/employees/leave" element={<Protected><DashboardLayout><EmployeeLeavePage /></DashboardLayout></Protected>} />
+  <Route path="/employees/eos" element={<Protected><DashboardLayout><EndOfServicePage /></DashboardLayout></Protected>} />
         <Route path="/accounts" element={<Protected><DashboardLayout><AccountsDashboardPage /></DashboardLayout></Protected>} />
         <Route path="/accounts/transactions" element={<Protected><DashboardLayout><TransactionsPage /></DashboardLayout></Protected>} />
         <Route path="/accounts/payments" element={<Protected><DashboardLayout><PaymentVouchersPage /></DashboardLayout></Protected>} />
