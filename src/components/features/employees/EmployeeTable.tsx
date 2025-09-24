@@ -9,7 +9,6 @@ import { formatCurrency } from '../../../lib/formatters';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { useNotificationStore } from '../../../stores/notificationStore';
 import { Dialog } from '../../ui/dialog';
-import { EmployeeForm } from './EmployeeForm';
 import { PermanentEmployeeForm } from './PermanentEmployeeForm';
 import { TemporaryEmployeeForm } from './TemporaryEmployeeForm';
 // Creation/Update disabled in compatibility phase – forms will be reintroduced per employee type
@@ -135,8 +134,12 @@ export const EmployeeTable: React.FC = () => {
           </div>
         </div>
       )}
-  {showAddPerm && <div className="mt-4"><PermanentEmployeeForm onCreated={()=> { setShowAddPerm(false); refetch(); }} /></div>}
-  {showAddTemp && <div className="mt-4"><TemporaryEmployeeForm onCreated={()=> { setShowAddTemp(false); refetch(); }} /></div>}
+  <Dialog open={showAddPerm} onClose={()=> setShowAddPerm(false)} title="Add Permanent Employee" size="lg">
+    <PermanentEmployeeForm onCreated={()=> { setShowAddPerm(false); refetch(); }} />
+  </Dialog>
+  <Dialog open={showAddTemp} onClose={()=> setShowAddTemp(false)} title="Add Temporary Employee" size="lg">
+    <TemporaryEmployeeForm onCreated={()=> { setShowAddTemp(false); refetch(); }} />
+  </Dialog>
     </div>
   );
 };
