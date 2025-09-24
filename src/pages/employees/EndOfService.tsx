@@ -22,7 +22,7 @@ export const EndOfServicePage: React.FC = () => {
     setRecalcLoading(false);
   };
 
-  const totalLiability = employees.reduce((s,e)=> s.plus(e.endOfService.eligibleAmount), new Decimal(0));
+  const totalLiability = employees.reduce((s,e)=> s.plus(e.endOfService.gratuityAmount ?? e.endOfService.eligibleAmount ?? 0), new Decimal(0));
 
   return (
     <div className="p-6 space-y-6">
@@ -51,10 +51,10 @@ export const EndOfServicePage: React.FC = () => {
                 {employees.map(e => (
                   <tr key={e.id} className="border-b last:border-0">
                     <td className="px-3 py-2 font-medium whitespace-nowrap">{e.personalInfo.firstName} {e.personalInfo.lastName}</td>
-                    <td className="px-3 py-2 text-right">{e.endOfService.yearsOfService.toFixed(2)}</td>
+                    <td className="px-3 py-2 text-right">{(e.endOfService.totalServiceYears ?? e.endOfService.yearsOfService ?? 0).toFixed(2)}</td>
                     <td className="px-3 py-2 text-right">{e.compensation.basicSalary.toFixed(2)}</td>
-                    <td className="px-3 py-2 text-right font-semibold">{e.endOfService.eligibleAmount.toFixed(2)}</td>
-                    <td className="px-3 py-2 text-left text-xs">{new Date(e.endOfService.lastCalculationDate).toLocaleDateString('en-US')}</td>
+                    <td className="px-3 py-2 text-right font-semibold">{(e.endOfService.gratuityAmount ?? e.endOfService.eligibleAmount ?? 0).toFixed(2)}</td>
+                    <td className="px-3 py-2 text-left text-xs">{e.endOfService.lastCalculationDate ? new Date(e.endOfService.lastCalculationDate).toLocaleDateString('en-US') : '—'}</td>
                   </tr>
                 ))}
                 {employees.length === 0 && <tr><td colSpan={5} className="px-3 py-6 text-center text-gray-500">No employees.</td></tr>}

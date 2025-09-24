@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { STORAGE_KEYS } from '../lib/constants';
 import type { LoginSchema } from '../lib/validators';
+import { AuthService } from '../services/auth';
 interface LoginResult {
   role: string;
   name: string;
@@ -8,23 +9,7 @@ interface LoginResult {
   issuedAt: number;
 }
 
-// Development-only credential set (can be replaced later with Firebase)
-const DEV_USERS: Array<{ email: string; password: string; role: string; name: string }> = [
-  { email: 'admin@niponpayroll.qa', password: 'Admin123!', role: 'admin', name: 'System Administrator' },
-  { email: 'manager@niponpayroll.qa', password: 'Manager123!', role: 'manager', name: 'Payroll Manager' }
-];
-
-async function devAuthenticate(credentials: LoginSchema): Promise<LoginResult> {
-  const match = DEV_USERS.find(u => u.email === credentials.email);
-  if (!match) throw new Error('Unauthorized: Email not recognized');
-  if (match.password !== credentials.password) throw new Error('Invalid password');
-  return {
-    role: match.role,
-    name: match.name,
-    user: { email: match.email },
-    issuedAt: Date.now()
-  };
-}
+// Replaced with AuthService logic
 import { safeJsonParse } from '../lib/utils';
 
 interface AuthState {
@@ -43,7 +28,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   async login(data) {
     set({ loading: true, error: undefined });
     try {
-  const result = await devAuthenticate(data);
+  const auth = await AuthService.login(data.email, data.password);
+  const result = { role: auth.user.role, name: auth.user.name, user: { email: auth.user.email }, issuedAt: Date.now() };
       localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(result));
       set({ session: result });
     } catch (e) {
