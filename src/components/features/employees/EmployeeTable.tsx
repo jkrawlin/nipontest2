@@ -11,6 +11,7 @@ import { useNotificationStore } from '../../../stores/notificationStore';
 import { Dialog } from '../../ui/dialog';
 import { PermanentEmployeeForm } from './PermanentEmployeeForm';
 import { TemporaryEmployeeForm } from './TemporaryEmployeeForm';
+import { EmployeeDetails } from './EmployeeDetails';
 // Creation/Update disabled in compatibility phase – forms will be reintroduced per employee type
 // import { useCreateEmployee, useUpdateEmployee } from '../../../hooks/useEmployeeMutations';
 import { Button } from '../../ui/button';
@@ -24,8 +25,8 @@ export const EmployeeTable: React.FC = () => {
   const [page, setPage] = React.useState(1);
   const pageSize = 20;
   const { data, isLoading, refetch, error } = useEmployees({ search: debounced || undefined, page, pageSize });
-  const [open, setOpen] = React.useState(false);
-  const [editing, setEditing] = React.useState<Employee | null>(null);
+  const [openDetails, setOpenDetails] = React.useState(false);
+  const [selected, setSelected] = React.useState<Employee | null>(null);
   // const createMutation = useCreateEmployee();
   // const updateMutation = useUpdateEmployee(editing?.id);
 
@@ -34,10 +35,9 @@ export const EmployeeTable: React.FC = () => {
   const openCreatePermanent = () => setShowAddPerm(true);
   const openCreateTemporary = () => setShowAddTemp(true);
 
-  const onRowClick = async (emp: Employee) => {
-    // Optionally could refetch full record; placeholder uses existing object
-    setEditing(emp);
-    setOpen(true);
+  const onNameClick = (emp: Employee) => {
+    setSelected(emp);
+    setOpenDetails(true);
   };
 
   React.useEffect(() => {
@@ -59,9 +59,12 @@ export const EmployeeTable: React.FC = () => {
         cell: ({ row }) => {
           const emp = row.original;
           const position = emp.employeeType==='Permanent' ? emp.employment.position : emp.contract.position;
+          const fullName = `${emp.personalInfo.firstName} ${emp.personalInfo.lastName}`;
           return (
             <div>
-              {emp.personalInfo.firstName} {emp.personalInfo.lastName}
+              <button className="text-indigo-600 hover:underline font-medium" onClick={() => onNameClick(emp)} title="View details">
+                {fullName}
+              </button>
               <div className="text-xs text-gray-500">{position}</div>
             </div>
           );
@@ -139,6 +142,9 @@ export const EmployeeTable: React.FC = () => {
   </Dialog>
   <Dialog open={showAddTemp} onClose={()=> setShowAddTemp(false)} title="Add Temporary Employee" size="lg">
     <TemporaryEmployeeForm onCreated={()=> { setShowAddTemp(false); refetch(); }} />
+  </Dialog>
+  <Dialog open={openDetails} onClose={()=> setOpenDetails(false)} title={selected ? `${selected.personalInfo.firstName} ${selected.personalInfo.lastName}` : 'Employee Details'} size="lg">
+    {selected && (<EmployeeDetails employee={selected} />)}
   </Dialog>
     </div>
   );
