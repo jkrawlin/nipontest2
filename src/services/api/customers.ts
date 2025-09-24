@@ -2,15 +2,21 @@ import type { Customer } from '../../types/customer';
 
 export class CustomerService {
   private static STORAGE_KEY = 'nipon_customers';
+  private static _seeding = false;
+  private static _seedCodeCounter = 0;
 
   static getAll(): Customer[] {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (!stored) {
-        this.seedInitialData();
-        return this.getAll();
+        if (!this._seeding) {
+          this.seedInitialData();
+        }
+        // During seeding return the in-memory building list fallback (empty until saved)
+        const interim = localStorage.getItem(this.STORAGE_KEY);
+        return interim ? JSON.parse(interim) : [];
       }
-      return JSON.parse(stored);
+      return JSON.parse(stored) as Customer[];
     } catch {
       return [];
     }
@@ -88,6 +94,10 @@ export class CustomerService {
 
   private static generateCustomerCode(): string {
     const year = new Date().getFullYear();
+    if (this._seeding) {
+      this._seedCodeCounter += 1;
+      return `CUS-${year}-${String(this._seedCodeCounter).padStart(4,'0')}`;
+    }
     const count = this.getAll().filter(c => c.customerCode.startsWith(`CUS-${year}`)).length + 1;
     return `CUS-${year}-${String(count).padStart(4,'0')}`;
   }
@@ -97,6 +107,9 @@ export class CustomerService {
   }
 
   private static seedInitialData(): void {
+    if (this._seeding) return; // prevent re-entry
+    this._seeding = true;
+    this._seedCodeCounter = 0;
     const sample: any[] = [
       {
         companyInfo: { name: 'Qatar Petroleum', nameArabic: 'قطر للبترول', tradeLicenseNumber: 'TL123456', registrationNumber: 'CR123456', taxNumber: 'TAX123456', industry: 'Oil & Gas', type: 'Government', website: 'www.qp.com.qa' },
@@ -136,5 +149,6 @@ export class CustomerService {
       lastModifiedBy: 'admin@niponpayroll.qa'
     }));
     this.save(customers);
+    this._seeding = false;
   }
 }

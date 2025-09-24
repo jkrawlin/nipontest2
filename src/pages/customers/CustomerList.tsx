@@ -28,6 +28,8 @@ export const CustomerList: React.FC = () => {
   };
 
   const filtered = customers.filter(c => c.companyInfo.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.customerCode.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Safeguard: cap render count to avoid UI lock if data ballooned unexpectedly
+  const limited = filtered.slice(0,500);
 
   return (
     <div className="p-6 space-y-6">
@@ -67,19 +69,19 @@ export const CustomerList: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(c => (
+            {limited.map(c => (
               <tr key={c.id} className="border-t hover:bg-gray-50 cursor-pointer" onClick={()=> navigate(`/customers/${c.id}`)}>
                 <td className="px-3 py-2 font-medium">{c.customerCode}</td>
                 <td className="px-3 py-2"><div className="font-medium">{c.companyInfo.name}</div><div className="text-[11px] text-gray-500">{c.companyInfo.industry}</div></td>
                 <td className="px-3 py-2 text-xs"><div>{c.contract.contractNumber}</div>{c.contract.endDate && <div className="text-[10px] text-gray-500">Expires {new Date(c.contract.endDate).toLocaleDateString()}</div>}</td>
                 <td className="px-3 py-2"><Badge variant="outline">{c.deployment.totalActive} workers</Badge></td>
                 <td className="px-3 py-2 font-medium">QAR {c.financial.currentMonthRevenue.toLocaleString()}</td>
-                <td className="px-3 py-2 font-medium {c.financial.outstandingAmount>0?'text-red-600':'text-green-600'}">QAR {c.financial.outstandingAmount.toLocaleString()}</td>
+                <td className={`px-3 py-2 font-medium ${c.financial.outstandingAmount>0?'text-red-600':'text-green-600'}`}>QAR {c.financial.outstandingAmount.toLocaleString()}</td>
                 <td className="px-3 py-2"><Badge variant={c.status==='Active'?'success': c.status==='Suspended'?'warning': c.status==='Inactive'?'secondary':'destructive'}>{c.status}</Badge></td>
                 <td className="px-3 py-2"><Badge variant={c.rating==='Excellent'?'success': c.rating==='Good'?'info': c.rating==='Average'?'secondary':'destructive'}>{c.rating}</Badge></td>
               </tr>
             ))}
-            {filtered.length===0 && (
+            {limited.length===0 && (
               <tr><td colSpan={8} className="px-3 py-6 text-center text-xs text-gray-500">No customers found.</td></tr>
             )}
           </tbody>
