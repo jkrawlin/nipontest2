@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Employee } from '../types/employee';
 import { EmployeeService } from '../services/employeeService';
-import { PageHeader } from '../components/ui/page-header';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { Card, CardContent } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { DataTable } from '../components/common/DataTable';
+import { Users, Search, Download, UserPlus } from 'lucide-react';
 
 export const EmployeeList: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -17,69 +21,69 @@ export const EmployeeList: React.FC = () => {
     e.employeeCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const navigate = useNavigate();
+
+  const getExpiryBadge = (exp: string) => {
+    const days = Math.ceil((new Date(exp).getTime() - Date.now()) / 86400000);
+    if (days < 0) return <Badge variant="destructive">Expired</Badge>;
+    if (days <= 30) return <Badge variant="warning">{days}d</Badge>;
+    if (days <= 90) return <Badge variant="secondary">{days}d</Badge>;
+    return <Badge variant="success">Valid</Badge>;
+  };
+
+  const columns = [
+    { header: 'Employee', accessor: 'employee', cell: (row: Employee) => (
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-gradient-to-br from-[#8A1538] to-red-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+          {row.firstName.charAt(0)}{row.lastName.charAt(0)}
+        </div>
+        <div>
+          <p className="font-medium text-gray-900 leading-tight">{row.firstName} {row.lastName}</p>
+          <p className="text-xs text-gray-500">{row.employeeCode}</p>
+        </div>
+      </div>
+    ) },
+    { header: 'Role', accessor: 'position', cell: (row: Employee) => (
+      <div>
+        <p className="text-sm font-medium text-gray-700">{row.position}</p>
+        <p className="text-xs text-gray-500">{row.department}</p>
+      </div>
+    ) },
+    { header: 'Type', accessor: 'type', cell: (row: Employee) => (
+      <Badge variant={row.type === 'Permanent' ? 'default' : 'secondary'}>{row.type}</Badge>
+    ) },
+    { header: 'QID', accessor: 'qatarIdExpiry', cell: (row: Employee) => getExpiryBadge(row.qatarIdExpiry) },
+    { header: 'Salary', accessor: 'totalSalary', cell: (row: Employee) => <span className="font-medium">QAR {row.totalSalary.toLocaleString()}</span> },
+    { header: 'Status', accessor: 'status', cell: (row: Employee) => <Badge variant={row.status === 'Active' ? 'success':'secondary'}>{row.status}</Badge> }
+  ];
+
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Employees"
-        description="Manage your workforce. Search and maintain basic employee records."
-        actions={<Button onClick={() => alert('Add Employee form placeholder')}>Add Employee</Button>}
-      />
+    <div className="space-y-6">
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
+          <p className="text-gray-500 mt-1">Manage your workforce</p>
+        </div>
+        <Button onClick={() => alert('Add Employee placeholder')} className="bg-[#8A1538] hover:bg-[#6A0F2B]">
+          <UserPlus className="w-4 h-4 mr-2" /> Add Employee
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card><CardContent className="p-4 flex items-center justify-between"><div><p className="text-xs font-medium text-gray-500 uppercase">Total</p><p className="text-2xl font-bold">{employees.length}</p></div><div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center"><Users className="w-5 h-5 text-blue-600"/></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center justify-between"><div><p className="text-xs font-medium text-gray-500 uppercase">Active</p><p className="text-2xl font-bold text-green-600">{employees.filter(e=> e.status==='Active').length}</p></div><div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center"><Users className="w-5 h-5 text-green-600"/></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center justify-between"><div><p className="text-xs font-medium text-gray-500 uppercase">Permanent</p><p className="text-2xl font-bold text-purple-600">{employees.filter(e=> e.type==='Permanent').length}</p></div><div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center"><Users className="w-5 h-5 text-purple-600"/></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center justify-between"><div><p className="text-xs font-medium text-gray-500 uppercase">Temporary</p><p className="text-2xl font-bold text-amber-600">{employees.filter(e=> e.type==='Temporary').length}</p></div><div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center"><Users className="w-5 h-5 text-amber-600"/></div></CardContent></Card>
+      </div>
       <Card>
-        <CardContent>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <input
-                type="text"
-                placeholder="Search employees..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full md:w-72 rounded-md border border-qatar-maroon/30 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-qatar-maroon"
-                aria-label="Search employees"
-              />
-              <div className="text-xs text-gray-500">{filtered.length} of {employees.length} shown</div>
+        <CardContent className="p-4 flex flex-col gap-4">
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="relative flex-1 min-w-[240px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input placeholder="Search by name, code, or position..." value={searchTerm} onChange={e=> setSearchTerm(e.target.value)} className="pl-9" />
             </div>
-            <div className="overflow-x-auto -mx-2">
-              <table className="min-w-full text-sm border-separate border-spacing-y-1">
-                <thead>
-                  <tr className="text-[11px] uppercase tracking-wide text-gray-500">
-                    <th className="text-left px-2 py-1 font-medium">Code</th>
-                    <th className="text-left px-2 py-1 font-medium">Name</th>
-                    <th className="text-left px-2 py-1 font-medium">Position</th>
-                    <th className="text-left px-2 py-1 font-medium">Department</th>
-                    <th className="text-left px-2 py-1 font-medium">QID Expiry</th>
-                    <th className="text-left px-2 py-1 font-medium">Status</th>
-                    <th className="text-left px-2 py-1 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(emp => {
-                    const expiry = new Date(emp.qatarIdExpiry);
-                    const now = new Date();
-                    const soon = new Date(Date.now() + 30*24*60*60*1000);
-                    const expiryTone = expiry < now ? 'text-red-600 font-semibold' : expiry < soon ? 'text-amber-600 font-medium' : 'text-green-600';
-                    return (
-                      <tr key={emp.id} className="bg-white shadow-sm hover:shadow rounded">
-                        <td className="px-2 py-2 font-medium text-gray-700">{emp.employeeCode}</td>
-                        <td className="px-2 py-2 text-gray-700">{emp.firstName} {emp.lastName}</td>
-                        <td className="px-2 py-2 text-gray-600">{emp.position}</td>
-                        <td className="px-2 py-2 text-gray-600">{emp.department}</td>
-                        <td className="px-2 py-2"><span className={expiryTone}>{emp.qatarIdExpiry}</span></td>
-                        <td className="px-2 py-2">
-                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${emp.status==='Active' ? 'bg-green-100 text-green-700':'bg-gray-100 text-gray-600'}`}>{emp.status}</span>
-                        </td>
-                        <td className="px-2 py-2">
-                          <div className="flex gap-2">
-                            <button className="text-qatar-maroon hover:underline text-xs" onClick={() => alert('Edit form placeholder')}>Edit</button>
-                            <button className="text-red-600 hover:underline text-xs" onClick={() => { if (confirm('Delete this employee?')) { EmployeeService.delete(emp.id); setEmployees(EmployeeService.getAll()); } }}>Delete</button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <Button variant="outline" onClick={()=> alert('Export placeholder')}><Download className="w-4 h-4 mr-2"/>Export</Button>
           </div>
+          <DataTable data={filtered} columns={columns} onRowClick={(row)=> navigate(`/employees/${(row as Employee).id}`)} />
         </CardContent>
       </Card>
     </div>

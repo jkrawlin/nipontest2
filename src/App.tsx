@@ -7,7 +7,7 @@ import { EmployeeList } from './pages/EmployeeList';
 import { PayrollProcess } from './pages/PayrollProcess';
 import { ReportsPage } from './pages/reports/Reports';
 import SimpleCustomersPage from './pages/customers/SimpleCustomerList';
-import { DashboardLayout } from './components/layouts/DashboardLayout';
+import { MainLayout } from './components/layout/MainLayout';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 const Protected: React.FC<React.PropsWithChildren> = ({ children }) => {
@@ -20,20 +20,13 @@ const App: React.FC = () => (
     <Suspense fallback={<></>}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/dashboard" element={<Protected><DashboardLayout><DashboardPage /></DashboardLayout></Protected>} />
-        <Route path="/employees" element={<Protected><DashboardLayout><EmployeeList /></DashboardLayout></Protected>} />
-        <Route path="/customers" element={<Protected><DashboardLayout><SimpleCustomersPage /></DashboardLayout></Protected>} />
-        <Route path="/payroll" element={<Protected><DashboardLayout><PayrollProcess /></DashboardLayout></Protected>} />
-        <Route
-          path="/reports"
-          element={
-            <Protected>
-              <DashboardLayout>
-                <ReportsPage />
-              </DashboardLayout>
-            </Protected>
-          }
-        />
+        <Route element={<Protected><MainLayout /></Protected>}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/employees" element={<EmployeeList />} />
+          <Route path="/customers" element={<SimpleCustomersPage />} />
+          <Route path="/payroll" element={<PayrollProcess />} />
+          <Route path="/reports" element={<ReportsPage />} />
+        </Route>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
