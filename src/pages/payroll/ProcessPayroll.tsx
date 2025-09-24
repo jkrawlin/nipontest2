@@ -6,17 +6,14 @@ import { PayrollService } from '../../services/api/payroll';
 import { formatCurrency } from '../../lib/formatters';
 import type { PayrollBatch, SalaryCalculation } from '../../types/payroll';
 import { Check, Calendar, Clock, Calculator, PlusCircle, CheckCircle, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { validatePayroll } from '../../lib/payroll/validation';
+import { WPSReportService } from '../../services/reports/wps';
+import { PayslipService } from '../../services/api/payslips';
 
 // UI components (lightweight local fallbacks if not present in project structure)
 import { Button } from '../../components/ui/button';
-// Table primitives (create simple minimal if table system not yet integrated here)
-
-const Table: React.FC<{ children: React.ReactNode }> = ({ children }) => <table className="min-w-full text-sm">{children}</table>;
-const TableHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => <thead className="bg-gray-50">{children}</thead>;
-const TableBody: React.FC<{ children: React.ReactNode }> = ({ children }) => <tbody>{children}</tbody>;
-const TableRow: React.FC<{ children: React.ReactNode }> = ({ children }) => <tr className="border-b last:border-0">{children}</tr>;
-const TableHead: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => <th className={"px-3 py-2 text-left font-medium text-gray-600 " + (className||'')}>{children}</th>;
-const TableCell: React.FC<{ children: React.ReactNode; className?: string; colSpan?: number }> = ({ children, className, colSpan }) => <td colSpan={colSpan} className={"px-3 py-2 align-middle " + (className||'')}>{children}</td>;
+// Use shared table primitives
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
 const TableFooter: React.FC<{ children: React.ReactNode }> = ({ children }) => <tfoot className="bg-gray-50 font-medium">{children}</tfoot>;
 
 // Simple card shell
@@ -224,19 +221,206 @@ const SalaryCalculationStep: React.FC<SalaryCalculationStepProps> = ({ payrollDa
 	);
 };
 
-// Placeholder steps for next phases
-const AdjustmentsStep: React.FC<StepComponentProps> = ({ onNext, onBack }) => (
-	<div className="space-y-4">
-		<h3 className="text-lg font-semibold">Add Adjustments</h3>
-		<p className="text-sm text-gray-600">(Placeholder) – bonuses, deductions, overtime fine-tuning.</p>
-		<div className="flex justify-between pt-4">
-			<Button variant="outline" onClick={onBack}><ChevronLeft className="mr-1 h-4 w-4"/>Back</Button>
-			<Button onClick={() => onNext()}>Continue<ChevronRight className="ml-1 h-4 w-4"/></Button>
+// Adjustments Step
+const adjustmentTypes = [
+	{ value: 'bonus', label: 'Bonus (+)' },
+	{ value: 'allowance', label: 'Allowance (+)' },
+	{ value: 'overtime', label: 'Overtime (+)' },
+	{ value: 'deduction', label: 'Deduction (-)' }
+] as const;
+
+const AdjustmentsStep: React.FC<StepComponentProps> = ({ onNext, onBack, payrollData, setPayrollData }) => {
+	const [form, setForm] = useState({ employeeId: '', type: 'bonus', amount: '', reason: '' });
+	const [editingId, setEditingId] = useState<string | null>(null);
+	const employees = payrollData.calculations?.map(c => ({ id: c.employeeId, name: c.employeeName })) || [];
+	const adjustments = payrollData.adjustments || [];
+	const [formError, setFormError] = useState<string | null>(null);
+
+	const addOrUpdate = () => {
+		setFormError(null);
+		if (!form.employeeId || !form.amount) { setFormError('Employee and amount required'); return; }
+		const amount = parseFloat(form.amount);
+		if (isNaN(amount) || amount <= 0) { setFormError('Enter a positive amount'); return; }
+		// Inline validation rules
+		const calc = payrollData.calculations?.find(c => c.employeeId === form.employeeId);
+		if (!calc) { setFormError('Calculation missing for employee'); return; }
+		const baseNet = calc.baseNet ?? (calc.net - (calc.adjustmentsTotal||0));
+		// Predict new adjustments total
+		let existingAdjTotal = calc.adjustmentsTotal || 0;
+		if (editingId) {
+			const prev = adjustments.find(a => a.id === editingId);
+			if (prev) existingAdjTotal -= (prev.type === 'deduction' ? -prev.amount : prev.amount);
+		}
+		const delta = form.type === 'deduction' ? -amount : amount;
+		const projectedAdjTotal = existingAdjTotal + delta;
+		const projectedNet = baseNet + projectedAdjTotal;
+		if (form.type === 'deduction' && amount > baseNet) { setFormError('Deduction exceeds base net pay'); return; }
+		if (projectedNet < 0) { setFormError('Adjustment would result in negative net pay'); return; }
+		// Soft warning on large bonus (>50% of base net)
+		if ((form.type === 'bonus' || form.type === 'allowance') && amount > baseNet * 0.5) {
+			// Just a warning; could convert to confirm dialog later
+			console.warn('Large positive adjustment (>50% base net)');
+		}
+		if (editingId) {
+			PayrollService.editAdjustment(payrollData.id!, editingId, { amount, reason: form.reason, type: form.type as any });
+			setEditingId(null);
+		} else {
+			PayrollService.addAdjustment(payrollData.id!, { employeeId: form.employeeId, type: form.type as any, amount, reason: form.reason });
+		}
+		setPayrollData(p => ({ ...PayrollService.getById(p.id!)! }));
+		setForm(f => ({ ...f, amount: '', reason: '' }));
+	};
+	const remove = (id: string) => { PayrollService.removeAdjustment(payrollData.id!, id); setPayrollData(p => ({ ...PayrollService.getById(p.id!)! })); };
+	const startEdit = (id: string) => { const adj = adjustments.find(a => a.id === id); if (!adj) return; setEditingId(id); setForm({ employeeId: adj.employeeId, type: adj.type, amount: String(adj.amount), reason: adj.reason || '' }); };
+	const cancelEdit = () => { setEditingId(null); setForm(f => ({ ...f, amount: '', reason: '' })); };
+
+	const perEmployee = (payrollData.calculations || []).map(c => ({ id: c.employeeId, name: c.employeeName, baseNet: c.baseNet ?? c.net - (c.adjustmentsTotal || 0), adjustments: c.adjustmentsTotal || 0, net: c.net }));
+
+	return (
+		<div className="space-y-6">
+			<h3 className="text-lg font-semibold">Adjustments</h3>
+			<div className="grid md:grid-cols-3 gap-6">
+				<div className="md:col-span-2 space-y-4">
+					<div className="overflow-x-auto border rounded">
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>Employee</TableHead>
+									<TableHead className="text-right">Base Net</TableHead>
+									<TableHead className="text-right">Adj Delta</TableHead>
+									<TableHead className="text-right">New Net</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{perEmployee.map(r => (
+									<TableRow key={r.id}>
+										<TableCell className="font-medium">{r.name}</TableCell>
+										<TableCell className="text-right">{formatCurrency(r.baseNet)}</TableCell>
+										<TableCell className={cn('text-right', r.adjustments >=0 ? 'text-green-600' : 'text-red-600')}>{r.adjustments>=0?'+':''}{formatCurrency(r.adjustments)}</TableCell>
+										<TableCell className="text-right font-semibold">{formatCurrency(r.net)}</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+							<TableFooter>
+								<TableRow>
+									<TableCell colSpan={3} className="text-right font-semibold">Batch Total:</TableCell>
+									<TableCell className="text-right font-bold">{formatCurrency(perEmployee.reduce((s,c)=> s + c.net,0))}</TableCell>
+								</TableRow>
+							</TableFooter>
+						</Table>
+					</div>
+					<div>
+						<h4 className="text-sm font-medium mb-2">Adjustment Lines</h4>
+						{adjustments.length === 0 && <div className="text-xs text-gray-500 border rounded p-3">No adjustments added yet.</div>}
+						{adjustments.length > 0 && (
+							<div className="overflow-x-auto border rounded">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>Employee</TableHead>
+											<TableHead>Type</TableHead>
+											<TableHead className="text-right">Amount</TableHead>
+											<TableHead>Reason</TableHead>
+											<TableHead>&nbsp;</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{adjustments.map(a => {
+											const emp = employees.find(e => e.id === a.employeeId); return (
+												<TableRow key={a.id}>
+													<TableCell>{emp?.name || a.employeeId}</TableCell>
+													<TableCell className="capitalize text-xs">{a.type}</TableCell>
+													<TableCell className={cn('text-right text-sm', a.type==='deduction' ? 'text-red-600' : 'text-green-600')}>{a.type==='deduction' && '-'}{formatCurrency(a.amount)}</TableCell>
+													<TableCell className="text-xs max-w-[240px] truncate" title={a.reason}>{a.reason}</TableCell>
+													<TableCell className="text-right space-x-2">
+														<button onClick={()=>startEdit(a.id)} className="text-xs text-blue-600 hover:underline">Edit</button>
+														<button onClick={()=>remove(a.id)} className="text-xs text-red-600 hover:underline">Remove</button>
+													</TableCell>
+												</TableRow>
+											); })}
+									</TableBody>
+								</Table>
+							</div>
+						)}
+					</div>
+				</div>
+				<div className="space-y-4">
+					<div className="border rounded p-4 space-y-3 bg-gray-50">
+						<h4 className="text-sm font-semibold">{editingId ? 'Edit Adjustment' : 'Add Adjustment'}</h4>
+						<div className="space-y-2">
+							<div>
+								<label className="text-xs font-medium block mb-1">Employee</label>
+								<select value={form.employeeId} onChange={e=> setForm(f => ({...f, employeeId: e.target.value}))} className="w-full border rounded px-2 py-1 text-sm">
+									<option value="">Select employee...</option>
+									{employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+								</select>
+							</div>
+							<div className="grid grid-cols-2 gap-2">
+								<div>
+									<label className="text-xs font-medium block mb-1">Type</label>
+									<select value={form.type} onChange={e=> setForm(f => ({...f, type: e.target.value}))} className="w-full border rounded px-2 py-1 text-sm">
+										{adjustmentTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+									</select>
+								</div>
+								<div>
+									<label className="text-xs font-medium block mb-1">Amount</label>
+									<input type="number" min="0" step="0.01" value={form.amount} onChange={e=> setForm(f => ({...f, amount: e.target.value}))} className="w-full border rounded px-2 py-1 text-sm" placeholder="0.00" />
+								</div>
+							</div>
+							<div>
+								<label className="text-xs font-medium block mb-1">Reason</label>
+								<input type="text" value={form.reason} onChange={e=> setForm(f => ({...f, reason: e.target.value}))} className="w-full border rounded px-2 py-1 text-sm" placeholder="Optional" />
+							</div>
+							<div className="flex gap-2">
+								<Button type="button" onClick={addOrUpdate} className="flex-1" disabled={!form.employeeId || !form.amount}>{editingId ? 'Update' : 'Add'}</Button>
+								{editingId && <Button type="button" variant="outline" onClick={cancelEdit}>Cancel</Button>}
+							</div>
+							{formError && <div className="text-[11px] text-red-600">{formError}</div>}
+						</div>
+					</div>
+					<div className="text-xs text-gray-500 leading-relaxed">
+						<p>Rules (future validation):</p>
+						<ul className="list-disc ml-4 mt-1 space-y-1">
+							<li>Deductions cannot exceed base net.</li>
+							<li>Overtime may have tiered multipliers.</li>
+							<li>Track taxable vs non-taxable allowances.</li>
+						</ul>
+					</div>
+					{payrollData.adjustmentAudit && payrollData.adjustmentAudit.length > 0 && (
+						<div className="border rounded p-3 bg-white/50 max-h-48 overflow-auto">
+							<h4 className="font-semibold text-xs mb-2">Adjustment Audit</h4>
+							<ul className="space-y-1 text-[11px]">
+								{payrollData.adjustmentAudit.slice().reverse().map(a => (
+									<li key={a.at + a.adjustmentId}>{new Date(a.at).toLocaleString()} - {a.action.toUpperCase()} #{a.adjustmentId.slice(0,6)} {a.details?.amount && `(amt:${a.details.amount})`}</li>
+								))}
+							</ul>
+						</div>
+					)}
+				</div>
+			</div>
+			<div className="flex justify-between">
+				<Button variant="outline" onClick={onBack}><ChevronLeft className="mr-1 h-4 w-4"/>Back</Button>
+				<Button onClick={()=> onNext()}>Continue<ChevronRight className="ml-1 h-4 w-4"/></Button>
+			</div>
 		</div>
-	</div>
-);
+	);
+};
 const ReviewApprovalStep: React.FC<StepComponentProps> = ({ onNext, onBack, payrollData }) => {
 	const total = payrollData.calculations?.reduce((s,c)=> s + c.net, 0) || 0;
+	const validation = validatePayroll(payrollData);
+
+	const handleExportWPS = async () => {
+		const csv = await WPSReportService.exportCSV(payrollData.id!);
+		const blob = new Blob([csv], { type: 'text/csv' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url; a.download = `WPS-${payrollData.month}-${payrollData.year}.csv`; a.click();
+		URL.revokeObjectURL(url);
+	};
+	const handleGeneratePayslips = () => {
+		PayslipService.generateForBatch(payrollData.id!);
+		onNext({ approved: true });
+	};
 	return (
 		<div className="space-y-4">
 			<h3 className="text-lg font-semibold">Review & Approve</h3>
@@ -244,11 +428,22 @@ const ReviewApprovalStep: React.FC<StepComponentProps> = ({ onNext, onBack, payr
 				<div className="flex justify-between"><span>Period:</span><span>{payrollData.month}/{payrollData.year}</span></div>
 				<div className="flex justify-between"><span>Employees:</span><span>{payrollData.calculations?.length || 0}</span></div>
 				<div className="flex justify-between font-medium"><span>Total Net Payroll:</span><span>{formatCurrency(total)}</span></div>
-				<div className="pt-2 text-xs text-gray-500">(Future) Add compliance checks: negative nets, abnormal OT, allowance caps.</div>
+				<div className="pt-2 text-xs">
+					{validation.issues.length === 0 ? <span className="text-green-600">No validation issues.</span> : (
+						<ul className="space-y-1 max-h-40 overflow-auto">
+							{validation.issues.map(i => (
+								<li key={i.code + i.employeeId} className={i.severity==='error'?'text-red-600':'text-amber-600'}>
+									[{i.severity.toUpperCase()}] {i.message}
+								</li>
+							))}
+						</ul>
+					)}
+				</div>
 			</div>
 			<div className="flex justify-between pt-4">
 				<Button variant="outline" onClick={onBack}><ChevronLeft className="mr-1 h-4 w-4"/>Back</Button>
-				<Button onClick={() => onNext({ approved: true })}>Approve & Generate Payslips<Check className="ml-1 h-4 w-4"/></Button>
+				<Button variant="outline" onClick={handleExportWPS}>Export WPS CSV</Button>
+				<Button disabled={validation.hasErrors} onClick={handleGeneratePayslips}>Approve & Generate Payslips<Check className="ml-1 h-4 w-4"/></Button>
 			</div>
 		</div>
 	);
