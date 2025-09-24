@@ -1,4 +1,4 @@
-import { LucideIcon, LayoutDashboard, Users, FileText, Calculator, DollarSign, Settings, Archive, Clock } from 'lucide-react';
+import { LucideIcon, LayoutDashboard, Users, FileText, Calculator, DollarSign, Settings, Clock, Building2, Plus, Receipt } from 'lucide-react';
 
 export interface NavChildItem {
   title: string;
@@ -32,6 +32,13 @@ export const navigationItems: NavItem[] = [
     { title: 'Daily Attendance', path: '/attendance/daily' },
     { title: 'Temporary Workers Log', path: '/attendance/temporary' },
     { title: 'Import Attendance', path: '/attendance/import' },
+  ]},
+  { title: 'Customers', icon: Building2, path: '/customers', children: [
+    { title: 'All Customers', path: '/customers' },
+    { title: 'Add Customer', path: '/customers/new' },
+    { title: 'Contracts', path: '/customers/contracts' },
+    { title: 'Deploy Staff', path: '/customers/deploy' },
+    { title: 'Customer Invoices', path: '/customers/invoices' },
   ]},
   {
     title: 'Accounts', icon: DollarSign, path: '/accounts', permission: 'view_accounts',

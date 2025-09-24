@@ -26,6 +26,13 @@ const ChartOfAccountsPage = lazy(() => import('./pages/accounts/ChartOfAccounts'
 const ExpenseClaimsPage = lazy(() => import('./pages/accounts/ExpenseClaims').then(m => ({ default: m.ExpenseClaimsPage })));
 const TrialBalancePage = lazy(() => import('./pages/accounts/TrialBalance').then(m => ({ default: m.TrialBalancePage })));
 const ProfitLossPage = lazy(() => import('./pages/accounts/ProfitLoss').then(m => ({ default: m.ProfitLossPage })));
+const CustomerListPage = lazy(() => import('./pages/customers/CustomerList').then(m => ({ default: m.CustomerList })));
+const CustomerCreatePage = lazy(() => import('./pages/customers/CustomerCreate').then(m => ({ default: m.CustomerCreate })));
+const CustomerDetailPage = lazy(() => import('./pages/customers/CustomerDetail').then(m => ({ default: m.CustomerDetail })));
+const CustomerDeployPage = lazy(() => import('./pages/customers/CustomerDeploy').then(m => ({ default: m.CustomerDeploy })));
+const CustomerContractsPage = lazy(() => import('./pages/customers/CustomerContracts').then(m => ({ default: m.CustomerContracts })));
+const CustomerGenerateInvoicePage = lazy(() => import('./pages/customers/CustomerGenerateInvoice').then(m => ({ default: m.CustomerGenerateInvoice })));
+const CustomerInvoicesPage = lazy(() => import('./pages/customers/CustomerInvoices').then(m => ({ default: m.CustomerInvoices })));
 import { DashboardLayout } from './components/layouts/DashboardLayout';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
@@ -71,6 +78,13 @@ const App: React.FC = () => (
         <Route path="/payroll/history" element={<Protected><DashboardLayout><PayrollHistoryPage /></DashboardLayout></Protected>} />
         <Route path="/payroll/payslips" element={<Protected><DashboardLayout><PayslipsPage /></DashboardLayout></Protected>} />
         <Route path="/payroll/adjustments" element={<Protected><DashboardLayout><SalaryAdjustmentsPage /></DashboardLayout></Protected>} />
+  <Route path="/customers" element={<Protected><DashboardLayout><CustomerListPage /></DashboardLayout></Protected>} />
+  <Route path="/customers/new" element={<Protected><DashboardLayout><CustomerCreatePage /></DashboardLayout></Protected>} />
+  <Route path="/customers/contracts" element={<Protected><DashboardLayout><CustomerContractsPage /></DashboardLayout></Protected>} />
+  <Route path="/customers/:id" element={<Protected><DashboardLayout><CustomerDetailPage /></DashboardLayout></Protected>} />
+  <Route path="/customers/:id/deploy" element={<Protected><DashboardLayout><CustomerDeployPage /></DashboardLayout></Protected>} />
+  <Route path="/customers/:id/invoice" element={<Protected><DashboardLayout><CustomerGenerateInvoicePage /></DashboardLayout></Protected>} />
+  <Route path="/customers/invoices" element={<Protected><DashboardLayout><CustomerInvoicesPage /></DashboardLayout></Protected>} />
         <Route
           path="/reports"
           element={

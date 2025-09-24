@@ -4,6 +4,7 @@ import { formatCurrency } from '../../lib/formatters';
 import { Badge } from '../../components/ui/badge';
 import { EmployeeService } from '../../services/api/employees';
 import { PayrollService } from '../../services/api/payroll';
+import { CustomerService } from '../../services/api/customers';
 import type { ExpiringDocument } from '../../types/employee';
 
 interface DashboardStats {
@@ -18,6 +19,9 @@ interface DashboardStats {
   payrollTrend: number;
   departments: number;
   nationalities: number;
+  totalCustomers?: number;
+  activeCustomers?: number;
+  customerMonthlyRevenue?: number;
 }
 
 export const DashboardPage: React.FC = () => {
@@ -45,6 +49,8 @@ export const DashboardPage: React.FC = () => {
       const docsCritical = expDocs.filter(d=> d.status==='critical').length;
       const docsWarning = expDocs.filter(d=> d.status==='warning').length;
       const docsExpired = expDocs.filter(d=> d.status==='expired').length;
+      const customers = CustomerService.getAll();
+      const customerMonthlyRevenue = customers.reduce((s,c)=> s + c.financial.currentMonthRevenue,0);
       setStats({
         totalEmployees: employees.length,
         activeEmployees: active.length,
@@ -56,7 +62,10 @@ export const DashboardPage: React.FC = () => {
         lastMonthPayroll: lastPayroll,
         payrollTrend: lastPayroll>0 ? ((currentPayroll-lastPayroll)/lastPayroll)*100 : 0,
         departments,
-        nationalities
+        nationalities,
+        totalCustomers: customers.length,
+        activeCustomers: customers.filter(c=> c.status==='Active').length,
+        customerMonthlyRevenue
       });
       setExpiringDocs(expDocs.slice(0,8));
     } finally { setLoading(false); }
@@ -70,11 +79,12 @@ export const DashboardPage: React.FC = () => {
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <p className="text-sm text-gray-600">Operational overview & compliance snapshot</p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card><CardHeader><CardTitle className="text-sm font-medium text-gray-500">Total Employees</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{stats?.totalEmployees}</p><p className="text-[11px] text-gray-500">{stats?.activeEmployees} active</p></CardContent></Card>
         <Card><CardHeader><CardTitle className="text-sm font-medium text-gray-500">This Month Payroll</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{formatCurrency(stats?.currentMonthPayroll||0)}</p><p className="text-[11px] text-gray-500">Trend {stats && stats.payrollTrend.toFixed(1)}%</p></CardContent></Card>
         <Card><CardHeader><CardTitle className="text-sm font-medium text-gray-500">Document Alerts</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{(stats?.documentsCritical||0)+(stats?.documentsExpired||0)}</p><p className="text-[11px] text-gray-500">{stats?.documentsExpired} expired</p></CardContent></Card>
         <Card><CardHeader><CardTitle className="text-sm font-medium text-gray-500">Departments</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{stats?.departments}</p><p className="text-[11px] text-gray-500">{stats?.nationalities} nationalities</p></CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-sm font-medium text-gray-500">Customers</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{stats?.totalCustomers}</p><p className="text-[11px] text-gray-500">{stats?.activeCustomers} active</p></CardContent></Card>
       </div>
       {expiringDocs.length>0 && (
         <Card>

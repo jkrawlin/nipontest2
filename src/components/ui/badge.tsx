@@ -10,7 +10,10 @@ const badgeVariants = cva(
         default: 'bg-qatar-maroon text-white border-transparent',
         secondary: 'bg-sand text-qatar-maroon border-transparent',
         outline: 'text-qatar-maroon border-qatar-maroon',
-        destructive: 'bg-red-600 text-white border-transparent'
+        destructive: 'bg-red-600 text-white border-transparent',
+        success: 'bg-green-600 text-white border-transparent',
+        warning: 'bg-amber-500 text-white border-transparent',
+        info: 'bg-blue-600 text-white border-transparent'
       }
     },
     defaultVariants: { variant: 'default' }
