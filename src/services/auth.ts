@@ -1,4 +1,6 @@
 import type { Role } from '../config/permissions';
+import { firebaseAuth } from '../config/firebase';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
 export interface AuthUser {
   id: string;
@@ -32,15 +34,32 @@ export class AuthService {
     }
   ];
 
-  static login(email: string, password: string): Promise<AuthResponse> {
+  static async login(email: string, password: string): Promise<AuthResponse> {
+    // If Firebase is configured, use it; otherwise fall back to local dev users
+    const hasFirebase = !!firebaseAuth?.app?.options?.projectId;
+    if (hasFirebase) {
+      const cred = await signInWithEmailAndPassword(firebaseAuth, email, password);
+      const token = await cred.user.getIdToken();
+      const user: AuthUser = {
+        id: cred.user.uid,
+        email: cred.user.email || email,
+        role: 'manager', // map roles via custom claims or Firestore if needed
+        name: cred.user.displayName || email.split('@')[0],
+        permissions: ['employees.view','payroll.*','reports.*']
+      };
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_user', JSON.stringify(user));
+      return { user, token, success: true };
+    }
+    // fallback: local mock users
     const user = this.USERS.find(u => u.email === email && (u as any).password === password);
-    if (!user) return Promise.reject(new Error('Invalid credentials'));
+    if (!user) throw new Error('Invalid credentials');
     const token = btoa(JSON.stringify({ userId: user.id, exp: Date.now() + 60*60*1000 }));
     localStorage.setItem('auth_token', token);
     localStorage.setItem('auth_user', JSON.stringify(user));
-    return Promise.resolve({ user: { ...user }, token, success: true });
+    return { user: { ...user }, token, success: true };
   }
-  static logout() { localStorage.removeItem('auth_token'); localStorage.removeItem('auth_user'); }
+  static async logout() { try { await signOut(firebaseAuth); } catch {} finally { localStorage.removeItem('auth_token'); localStorage.removeItem('auth_user'); } }
   static getCurrentUser(): AuthUser | null { const raw = localStorage.getItem('auth_user'); return raw ? JSON.parse(raw) : null; }
   static isAuthenticated(): boolean {
     const t = localStorage.getItem('auth_token'); if (!t) return false;

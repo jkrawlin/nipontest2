@@ -18,6 +18,25 @@ Modern, desktop-first HR, Payroll & (in progress) Accounts / Finance management 
 
 Removed: Supabase (currently mocked; future backend integration TBD – possibly Firebase or custom API).
 
+## Firebase Login (optional)
+
+This app supports signing in with Firebase Auth if environment variables are provided.
+
+1. Copy `.env.example` to `.env.local` and fill your Firebase web app settings:
+
+  - VITE_FIREBASE_API_KEY
+  - VITE_FIREBASE_AUTH_DOMAIN
+  - VITE_FIREBASE_PROJECT_ID
+  - VITE_FIREBASE_APP_ID
+  - VITE_FIREBASE_MESSAGING_SENDER_ID
+  - VITE_FIREBASE_STORAGE_BUCKET
+
+2. In Firebase Console, enable Email/Password sign-in.
+
+3. Create a user in Authentication and sign in via the Login page.
+
+If env is not configured, the app falls back to local mock users (admin/manager) defined in `src/services/auth.ts`.
+
 ## Getting Started
 
 ### 1. Install Dependencies

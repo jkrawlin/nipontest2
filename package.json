@@ -24,6 +24,7 @@
     "date-fns": "^3.6.0",
     "dayjs": "^1.11.18",
     "decimal.js": "^10.4.3",
+    "firebase": "^12.3.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.3",
     "lucide-react": "^0.441.0",
@@ -67,7 +68,9 @@
     ]
   },
   "vitest": {
-    "setupFiles": ["./vitest.setup.ts"],
+    "setupFiles": [
+      "./vitest.setup.ts"
+    ],
     "environment": "jsdom"
   }
 }
