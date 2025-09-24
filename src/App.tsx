@@ -9,6 +9,7 @@ const TemporaryEmployeeList = lazy(() => import('./pages/employees/TemporaryEmpl
 const AddEmployeePage = lazy(() => import('./pages/employees/AddEmployee').then(m => ({ default: m.AddEmployeePage })));
 const ImportEmployeesPage = lazy(() => import('./pages/employees/ImportEmployees').then(m => ({ default: m.ImportEmployeesPage })));
 const EmployeeDocumentsPage = lazy(() => import('./pages/employees/Documents').then(m => ({ default: m.EmployeeDocumentsPage })));
+const EmployeeDetailPage = lazy(() => import('./pages/employees/EmployeeDetail').then(m => ({ default: m.EmployeeDetailPage })));
 const EmployeeLeavePage = lazy(() => import('./pages/employees/Leave').then(m => ({ default: m.EmployeeLeavePage })));
 const EndOfServicePage = lazy(() => import('./pages/employees/EndOfService').then(m => ({ default: m.EndOfServicePage })));
 const PayrollListPage = lazy(() => import('./pages/payroll/PayrollList').then(m => ({ default: m.PayrollListPage })));
@@ -64,6 +65,7 @@ const App: React.FC = () => (
   <Route path="/employees/documents" element={<Protected><DashboardLayout><EmployeeDocumentsPage /></DashboardLayout></Protected>} />
   <Route path="/employees/leave" element={<Protected><DashboardLayout><EmployeeLeavePage /></DashboardLayout></Protected>} />
   <Route path="/employees/eos" element={<Protected><DashboardLayout><EndOfServicePage /></DashboardLayout></Protected>} />
+  <Route path="/employees/:id" element={<Protected><DashboardLayout><EmployeeDetailPage /></DashboardLayout></Protected>} />
         <Route path="/accounts" element={<Protected><DashboardLayout><AccountsDashboardPage /></DashboardLayout></Protected>} />
         <Route path="/accounts/transactions" element={<Protected><DashboardLayout><TransactionsPage /></DashboardLayout></Protected>} />
         <Route path="/accounts/payments" element={<Protected><DashboardLayout><PaymentVouchersPage /></DashboardLayout></Protected>} />

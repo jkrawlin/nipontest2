@@ -11,7 +11,7 @@ import { useNotificationStore } from '../../../stores/notificationStore';
 import { Dialog } from '../../ui/dialog';
 import { PermanentEmployeeForm } from './PermanentEmployeeForm';
 import { TemporaryEmployeeForm } from './TemporaryEmployeeForm';
-import { EmployeeDetails } from './EmployeeDetails';
+import { useNavigate } from 'react-router-dom';
 // Creation/Update disabled in compatibility phase – forms will be reintroduced per employee type
 // import { useCreateEmployee, useUpdateEmployee } from '../../../hooks/useEmployeeMutations';
 import { Button } from '../../ui/button';
@@ -25,8 +25,7 @@ export const EmployeeTable: React.FC = () => {
   const [page, setPage] = React.useState(1);
   const pageSize = 20;
   const { data, isLoading, refetch, error } = useEmployees({ search: debounced || undefined, page, pageSize });
-  const [openDetails, setOpenDetails] = React.useState(false);
-  const [selected, setSelected] = React.useState<Employee | null>(null);
+  const navigate = useNavigate();
   // const createMutation = useCreateEmployee();
   // const updateMutation = useUpdateEmployee(editing?.id);
 
@@ -36,8 +35,7 @@ export const EmployeeTable: React.FC = () => {
   const openCreateTemporary = () => setShowAddTemp(true);
 
   const onNameClick = (emp: Employee) => {
-    setSelected(emp);
-    setOpenDetails(true);
+    navigate(`/employees/${emp.id}`);
   };
 
   React.useEffect(() => {
@@ -143,9 +141,7 @@ export const EmployeeTable: React.FC = () => {
   <Dialog open={showAddTemp} onClose={()=> setShowAddTemp(false)} title="Add Temporary Employee" size="lg">
     <TemporaryEmployeeForm onCreated={()=> { setShowAddTemp(false); refetch(); }} />
   </Dialog>
-  <Dialog open={openDetails} onClose={()=> setOpenDetails(false)} title={selected ? `${selected.personalInfo.firstName} ${selected.personalInfo.lastName}` : 'Employee Details'} size="lg">
-    {selected && (<EmployeeDetails employee={selected} />)}
-  </Dialog>
+  {/* Details dialog removed in favor of dedicated integrated view page */}
     </div>
   );
 };
