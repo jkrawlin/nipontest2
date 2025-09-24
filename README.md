@@ -1,16 +1,22 @@
-# Nipon Payroll Pro (Scaffold)
+# Nipon Payroll Pro
 
-Modern, desktop-first HR & Payroll management system for Qatar. This repository currently contains the initial scaffold adhering to the provided architectural & coding guidelines.
+Modern, desktop-first HR, Payroll & (in progress) Accounts / Finance management system for Qatar.
 
 ## Stack
-- React 18 + TypeScript (Vite)
-- TailwindCSS + CVA + Tailwind Merge
-- Zustand (UI state) + React Query (server state)
-- Supabase (Auth, DB, Storage, Realtime)
-- Zod (validation) + React Hook Form
-- TanStack Table (data grids) – placeholder, not yet wired
-- Recharts (charts) – placeholder
-- Decimal.js (financial precision)
+| Layer | Tech |
+|-------|------|
+| Build Tool | Vite + ESBuild |
+| Language | TypeScript (strict) |
+| UI | React 18, TailwindCSS, CVA, Utility Primitives |
+| State (client) | Zustand |
+| Server / Data (mock) | In‑memory services + React Query |
+| Forms & Validation | React Hook Form + Zod |
+| Tables | TanStack Table |
+| Finance Accuracy | decimal.js |
+| Routing | react-router-dom v6 |
+| Testing | Vitest + @testing-library/react |
+
+Removed: Supabase (currently mocked; future backend integration TBD – possibly Firebase or custom API).
 
 ## Getting Started
 
@@ -19,21 +25,29 @@ Modern, desktop-first HR & Payroll management system for Qatar. This repository 
 npm install
 ```
 
-### 2. Environment Variables
-Copy `.env.example` to `.env` and fill in real Supabase credentials.
-```powershell
+### 2. (Optional) Environment Variables
+At present, the app runs fully in the browser with in‑memory data + localStorage (soon). You can still create a `.env` from `.env.example` for future expansion:
+```
 Copy-Item .env.example .env
 ```
+No secrets are required for the current mock mode.
 
 ### 3. Run Dev Server
 ```powershell
 npm run dev
 ```
 
-### 4. Build
+### 4. Build (Production Bundle)
 ```powershell
 npm run build
 ```
+Artifacts are emitted to `dist/`.
+
+### 5. Preview Production Build Locally
+```powershell
+npm run preview
+```
+Opens the optimized bundle on a local static server.
 
 ## Project Structure (Current)
 ```
@@ -44,7 +58,8 @@ src/
   hooks              # Custom hooks
   lib                # Utilities, validators, formatting, calculations
   pages              # Route pages (Login, Dashboard)
-  services/supabase  # Supabase client & service layer
+  services/api       # Mock in-memory service layer (employees, accounts)
+  services/supabase  # Stubs (legacy / placeholder) – safe to remove later
   stores             # Zustand stores
   styles             # Global styles
   types              # Shared TypeScript models
@@ -58,16 +73,14 @@ src/
 - Financial calculations use `decimal.js` with explicit rounding.
 - Environment-driven configuration (see `siteConfig`).
 
-## Immediate Next Steps
-1. Implement real dashboard stats service (aggregate Supabase views).
-2. Add authentication route guard (already basic) + session persistence restore on load.
-3. Scaffold Employee module (table, forms) using TanStack Table & RHF.
-4. Implement role-based conditional UI with `can()` helper.
-5. Add toast/notification system (store exists; create renderer component).
-6. Integrate document expiry alerts (Supabase view `expiring_documents`).
-7. Add command palette (Ctrl/Cmd+K) skeleton.
-8. Add audit logging triggers & ingestion viewer page.
-9. Introduce tests for critical utilities (calculations, formatters).
+## Immediate Roadmap
+1. Persist mock data (employees, accounts, transactions) to localStorage.
+2. Accounts UI Stage A: Transactions list, Payment Voucher form, Trial Balance.
+3. Command palette (Ctrl/Cmd + K) with fuzzy navigation.
+4. Role-based UI gating (already partially implemented in sidebar) – extend to feature actions.
+5. Export & print utilities (CSV / PDF stub) for payroll & finance.
+6. Replace in-memory layer with real backend (architecture selection pending).
+7. Add CI (GitHub Actions) for typecheck, lint, tests.
 
 ## Testing
 Vitest + Testing Library configured.
@@ -82,13 +95,37 @@ npm run typecheck
 npm run format
 ```
 
-## Security Notes
-- Service key must NEVER ship to client. Use only in server runtime (Edge Functions / API routes).
-- Input validation with Zod both client & (later) server.
-- Add RLS policies per schema after Supabase SQL migration.
+## Deployment (IMPORTANT: Avoid MIME Type Errors)
+
+Always deploy the **contents of `dist/`** produced by `npm run build` – not the raw `src/` files. If you see:
+
+```
+Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of "application/octet-stream".
+```
+…it means the server is trying to serve raw `*.ts` / `*.tsx` source files (or misconfigured headers). Correct fix: build + deploy the compiled assets only.
+
+### Quick Deploy Matrix
+| Platform | Steps |
+|----------|-------|
+| Static Host / Nginx | `npm run build` → copy `dist/*` → ensure `try_files /index.html` for SPA |
+| GitHub Pages | Set `base` in `vite.config.ts` to `/REPO_NAME/`; copy `dist/*`; duplicate `index.html` as `404.html` |
+| Netlify | Add build command `npm run build`, publish `dist`, add redirect `/* /index.html 200` |
+| Vercel | Use `npm run build` & `dist` via static output (or adapt to framework config) |
+
+### SPA Routing (BrowserRouter)
+Configure your host to fallback to `index.html` for unknown paths. Without this, deep links (e.g. `/accounts/transactions`) may 404.
+
+### GitHub Pages Example (Optional base config)
+In `vite.config.ts`:
+```ts
+// export default defineConfig({ base: '/nipontest2/', plugins:[react()] })
+```
+Only enable if deploying under `https://<user>.github.io/nipontest2/`.
+
+See `DEPLOYMENT.md` for detailed troubleshooting.
 
 ## License
 Proprietary – All rights reserved.
 
 ---
-Scaffold generated. Continue iterating feature-by-feature with consistent patterns.
+Keep iterating feature-by-feature with consistent patterns.
