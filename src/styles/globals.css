@@ -1,22 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind directives removed (pipeline not active). Basic fallback styles below. */
 
-/* Define custom properties if needed; mapping to extended palette */
-:root {
-  --color-bg: #F5EFE7; /* qatar.beige */
-}
+:root { --color-bg: #F5EFE7; }
 
 html, body, #root { height: 100%; }
 
-body { @apply bg-qatar-beige text-gray-900 antialiased; }
-
-/* Scrollbars */
-::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-track { @apply bg-qatar-beige; }
-::-webkit-scrollbar-thumb { @apply bg-qatar-maroon/60 rounded; }
-::-webkit-scrollbar-thumb:hover { @apply bg-qatar-maroon; }
-
-@media print {
-  body { @apply bg-white text-black; }
+body {
+  background: var(--color-bg);
+  color: #1f2937; /* gray-800 */
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Simple scrollbar styling */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: rgba(102,0,51,0.6); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(102,0,51); }
+
+@media print { body { background: #ffffff; color: #000; } }
