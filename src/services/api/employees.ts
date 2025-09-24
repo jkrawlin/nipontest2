@@ -30,6 +30,7 @@ function projectExpiries(permanent: PermanentEmployee[], temporary: TemporaryEmp
     add(p,'Health Card', p.documents.healthCard.expiryDate, p.documents.healthCard.number);
   });
   temporary.forEach(t => {
+    if (t.documents.qatarId) add(t,'Qatar ID', t.documents.qatarId.expiryDate, t.documents.qatarId.number);
     add(t,'Passport', t.documents.passport.expiryDate, t.documents.passport.number);
     if (t.documents.visa) add(t,'Visa', t.documents.visa.expiryDate, t.documents.visa.number);
     if (t.documents.workPermit) add(t,'Work Permit', t.documents.workPermit.expiryDate, t.documents.workPermit.number);

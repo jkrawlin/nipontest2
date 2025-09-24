@@ -212,6 +212,7 @@ export const EmployeeDetailPage: React.FC = () => {
                 </>
               ) : (
                 <>
+                  {employee.documents.qatarId && <div className="border rounded p-3"><div className="font-semibold">Qatar ID</div><div>{employee.documents.qatarId.number}</div><div className="text-xs text-gray-500">Expires: {employee.documents.qatarId.expiryDate}</div></div>}
                   <div className="border rounded p-3"><div className="font-semibold">Passport</div><div>{employee.documents.passport.number}</div><div className="text-xs text-gray-500">Expires: {employee.documents.passport.expiryDate}</div></div>
                   {employee.documents.visa && <div className="border rounded p-3"><div className="font-semibold">Visa</div><div>{employee.documents.visa.number}</div><div className="text-xs text-gray-500">Expires: {employee.documents.visa.expiryDate}</div></div>}
                   {employee.documents.workPermit && <div className="border rounded p-3"><div className="font-semibold">Work Permit</div><div>{employee.documents.workPermit.number}</div><div className="text-xs text-gray-500">Expires: {employee.documents.workPermit.expiryDate}</div></div>}

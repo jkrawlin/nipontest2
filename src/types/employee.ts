@@ -56,6 +56,7 @@ export interface PermanentEmployee extends BaseEmployee {
 export interface TemporaryEmployee extends BaseEmployee {
   employeeType: 'Temporary';
   documents: {
+    qatarId?: { number: string; issueDate: string; expiryDate: string; profession?: string; sponsor?: string; fileUrl?: string };
     passport: { number: string; issueDate: string; expiryDate: string; issuePlace: string; fileUrl?: string };
     visa?: { number: string; issueDate: string; expiryDate: string; type: 'Visit' | 'Business' | 'Tourist'; sponsor: string; fileUrl?: string };
     workPermit?: { number: string; issueDate: string; expiryDate: string; fileUrl?: string };
