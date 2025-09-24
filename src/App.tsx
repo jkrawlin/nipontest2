@@ -1,38 +1,38 @@
-import React, { Suspense, lazy } from 'react';
+import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
-const LoginPage = lazy(() => import('./pages/auth/Login').then(m => ({ default: m.LoginPage })));
-const DashboardPage = lazy(() => import('./pages/dashboard/Dashboard').then(m => ({ default: m.DashboardPage })));
-const EmployeeListPage = lazy(() => import('./pages/employees/EmployeeList').then(m => ({ default: m.EmployeeListPage })));
-const PermanentEmployeeList = lazy(() => import('./pages/employees/PermanentEmployeeList').then(m => ({ default: m.PermanentEmployeeList })));
-const TemporaryEmployeeList = lazy(() => import('./pages/employees/TemporaryEmployeeList').then(m => ({ default: m.TemporaryEmployeeList })));
-const AddEmployeePage = lazy(() => import('./pages/employees/AddEmployee').then(m => ({ default: m.AddEmployeePage })));
-const ImportEmployeesPage = lazy(() => import('./pages/employees/ImportEmployees').then(m => ({ default: m.ImportEmployeesPage })));
-const EmployeeDocumentsPage = lazy(() => import('./pages/employees/Documents').then(m => ({ default: m.EmployeeDocumentsPage })));
-const EmployeeLeavePage = lazy(() => import('./pages/employees/Leave').then(m => ({ default: m.EmployeeLeavePage })));
-const EndOfServicePage = lazy(() => import('./pages/employees/EndOfService').then(m => ({ default: m.EndOfServicePage })));
-const PayrollListPage = lazy(() => import('./pages/payroll/PayrollList').then(m => ({ default: m.PayrollListPage })));
-const ProcessPayrollPage = lazy(() => import('./pages/payroll/ProcessPayroll').then(m => ({ default: m.ProcessPayrollPage })));
-const PayrollHistoryPage = lazy(() => import('./pages/payroll/PayrollHistory').then(m => ({ default: m.PayrollHistoryPage })));
-const PayslipsPage = lazy(() => import('./pages/payroll/Payslips').then(m => ({ default: m.PayslipsPage })));
-const SalaryAdjustmentsPage = lazy(() => import('./pages/payroll/SalaryAdjustments').then(m => ({ default: m.SalaryAdjustmentsPage })));
-const ReportsPage = lazy(() => import('./pages/reports/Reports').then(m => ({ default: m.ReportsPage })));
-const AccountsDashboardPage = lazy(() => import('./pages/accounts/AccountsDashboard').then(m => ({ default: m.AccountsDashboardPage })));
-const TransactionsPage = lazy(() => import('./pages/accounts/Transactions').then(m => ({ default: m.TransactionsPage })));
-const PaymentVouchersPage = lazy(() => import('./pages/accounts/PaymentVouchers').then(m => ({ default: m.PaymentVouchersPage })));
-const ReceiptVouchersPage = lazy(() => import('./pages/accounts/ReceiptVouchers').then(m => ({ default: m.ReceiptVouchersPage })));
-const BankAccountsPage = lazy(() => import('./pages/accounts/BankAccounts').then(m => ({ default: m.BankAccountsPage })));
-const ChartOfAccountsPage = lazy(() => import('./pages/accounts/ChartOfAccounts').then(m => ({ default: m.ChartOfAccountsPage })));
-const ExpenseClaimsPage = lazy(() => import('./pages/accounts/ExpenseClaims').then(m => ({ default: m.ExpenseClaimsPage })));
-const TrialBalancePage = lazy(() => import('./pages/accounts/TrialBalance').then(m => ({ default: m.TrialBalancePage })));
-const ProfitLossPage = lazy(() => import('./pages/accounts/ProfitLoss').then(m => ({ default: m.ProfitLossPage })));
-const CustomerListPage = lazy(() => import('./pages/customers/CustomerList').then(m => ({ default: m.CustomerList })));
-const CustomerCreatePage = lazy(() => import('./pages/customers/CustomerCreate').then(m => ({ default: m.CustomerCreate })));
-const CustomerDetailPage = lazy(() => import('./pages/customers/CustomerDetail').then(m => ({ default: m.CustomerDetail })));
-const CustomerDeployPage = lazy(() => import('./pages/customers/CustomerDeploy').then(m => ({ default: m.CustomerDeploy })));
-const CustomerContractsPage = lazy(() => import('./pages/customers/CustomerContracts').then(m => ({ default: m.CustomerContracts })));
-const CustomerGenerateInvoicePage = lazy(() => import('./pages/customers/CustomerGenerateInvoice').then(m => ({ default: m.CustomerGenerateInvoice })));
-const CustomerInvoicesPage = lazy(() => import('./pages/customers/CustomerInvoices').then(m => ({ default: m.CustomerInvoices })));
+import { LoginPage } from './pages/auth/Login';
+import { DashboardPage } from './pages/dashboard/Dashboard';
+import { EmployeeListPage } from './pages/employees/EmployeeList';
+import { PermanentEmployeeList } from './pages/employees/PermanentEmployeeList';
+import { TemporaryEmployeeList } from './pages/employees/TemporaryEmployeeList';
+import { AddEmployeePage } from './pages/employees/AddEmployee';
+import { ImportEmployeesPage } from './pages/employees/ImportEmployees';
+import { EmployeeDocumentsPage } from './pages/employees/Documents';
+import { EmployeeLeavePage } from './pages/employees/Leave';
+import { EndOfServicePage } from './pages/employees/EndOfService';
+import { PayrollListPage } from './pages/payroll/PayrollList';
+import { ProcessPayrollPage } from './pages/payroll/ProcessPayroll';
+import { PayrollHistoryPage } from './pages/payroll/PayrollHistory';
+import { PayslipsPage } from './pages/payroll/Payslips';
+import { SalaryAdjustmentsPage } from './pages/payroll/SalaryAdjustments';
+import { ReportsPage } from './pages/reports/Reports';
+import { AccountsDashboardPage } from './pages/accounts/AccountsDashboard';
+import { TransactionsPage } from './pages/accounts/Transactions';
+import { PaymentVouchersPage } from './pages/accounts/PaymentVouchers';
+import { ReceiptVouchersPage } from './pages/accounts/ReceiptVouchers';
+import { BankAccountsPage } from './pages/accounts/BankAccounts';
+import { ChartOfAccountsPage } from './pages/accounts/ChartOfAccounts';
+import { ExpenseClaimsPage } from './pages/accounts/ExpenseClaims';
+import { TrialBalancePage } from './pages/accounts/TrialBalance';
+import { ProfitLossPage } from './pages/accounts/ProfitLoss';
+import { CustomerList as CustomerListPage } from './pages/customers/CustomerList';
+import { CustomerCreate as CustomerCreatePage } from './pages/customers/CustomerCreate';
+import { CustomerDetail as CustomerDetailPage } from './pages/customers/CustomerDetail';
+import { CustomerDeploy as CustomerDeployPage } from './pages/customers/CustomerDeploy';
+import { CustomerContracts as CustomerContractsPage } from './pages/customers/CustomerContracts';
+import { CustomerGenerateInvoice as CustomerGenerateInvoicePage } from './pages/customers/CustomerGenerateInvoice';
+import { CustomerInvoices as CustomerInvoicesPage } from './pages/customers/CustomerInvoices';
 import { DashboardLayout } from './components/layouts/DashboardLayout';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
@@ -43,7 +43,6 @@ const Protected: React.FC<React.PropsWithChildren> = ({ children }) => {
 
 const App: React.FC = () => (
   <ErrorBoundary>
-    <Suspense fallback={<div className="p-6 text-sm">Loading...</div>}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
@@ -98,7 +97,6 @@ const App: React.FC = () => (
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
-    </Suspense>
   </ErrorBoundary>
 );
 
