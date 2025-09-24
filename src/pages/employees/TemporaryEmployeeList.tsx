@@ -1,15 +1,18 @@
 import React,{useEffect,useState} from 'react';
-import { useNavigate } from 'react-router-dom';
 import { TemporaryEmployee } from '../../types/employee';
 import { TemporaryEmployeeService } from '../../services/api/temporaryEmployees';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Users, FileWarning } from 'lucide-react';
+import { Dialog } from '../../components/ui/dialog';
+import { EmployeeDetails } from '../../components/features/employees/EmployeeDetails';
+import type { Employee } from '../../types/employee';
 
 export const TemporaryEmployeeList: React.FC = () => {
   const [employees,setEmployees]=useState<TemporaryEmployee[]>([]);
   const [stats,setStats]=useState({total:0,active:0,endingSoon:0});
-  const navigate = useNavigate();
+  const [openDetails, setOpenDetails] = useState(false);
+  const [selected, setSelected] = useState<Employee | null>(null);
   useEffect(()=>{ const data=TemporaryEmployeeService.getAll(); setEmployees(data); setStats({ total:data.length, active:data.filter(e=>e.status==='Active').length, endingSoon:data.filter(e=> { const d=new Date(e.contract.endDate).getTime()-Date.now(); const days=Math.floor(d/(1000*60*60*24)); return days<=30 && days>=0; }).length }); },[]);
   return <div className="p-6 space-y-6">
     <div><h1 className="text-2xl font-semibold">Temporary Employees</h1><p className="text-xs text-gray-500">Contract / daily wage manpower</p></div>
@@ -25,7 +28,7 @@ export const TemporaryEmployeeList: React.FC = () => {
           {employees.map(e=> { const endDays=Math.floor((new Date(e.contract.endDate).getTime()-Date.now())/(1000*60*60*24)); return <tr key={e.id} className="border-b last:border-0">
             <td className="px-3 py-2">{e.employeeCode}</td>
             <td className="px-3 py-2 whitespace-nowrap">
-              <button className="text-indigo-600 hover:underline font-medium" onClick={()=> navigate(`/employees/${e.id}`)}>
+              <button className="text-indigo-600 hover:underline font-medium" onClick={()=> { setSelected(e as Employee); setOpenDetails(true); }}>
                 {e.personalInfo.firstName} {e.personalInfo.lastName}
               </button>
             </td>
@@ -40,6 +43,9 @@ export const TemporaryEmployeeList: React.FC = () => {
         </tbody>
       </table>
     </div>
+    <Dialog open={openDetails} onClose={()=> setOpenDetails(false)} title={selected ? `${selected.personalInfo.firstName} ${selected.personalInfo.lastName}` : 'Employee Details'} size="lg">
+      {selected && (<EmployeeDetails employee={selected} />)}
+    </Dialog>
   </div>;
 };
 export default TemporaryEmployeeList;
