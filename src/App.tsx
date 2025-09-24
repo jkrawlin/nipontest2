@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { LoginPage } from './pages/auth/Login';
@@ -12,11 +12,11 @@ import { EmployeeDocumentsPage } from './pages/employees/Documents';
 import { EmployeeLeavePage } from './pages/employees/Leave';
 import { EndOfServicePage } from './pages/employees/EndOfService';
 import { PayrollListPage } from './pages/payroll/PayrollList';
-import { ProcessPayrollPage } from './pages/payroll/ProcessPayroll';
 import { PayrollHistoryPage } from './pages/payroll/PayrollHistory';
 import { PayslipsPage } from './pages/payroll/Payslips';
 import { SalaryAdjustmentsPage } from './pages/payroll/SalaryAdjustments';
-import { ReportsPage } from './pages/reports/Reports';
+const ProcessPayrollPage = lazy(()=> import('./pages/payroll/ProcessPayroll').then(m=> ({ default: m.ProcessPayrollPage })));
+const ReportsPage = lazy(()=> import('./pages/reports/Reports').then(m=> ({ default: m.ReportsPage })));
 import { AccountsDashboardPage } from './pages/accounts/AccountsDashboard';
 import { TransactionsPage } from './pages/accounts/Transactions';
 import { PaymentVouchersPage } from './pages/accounts/PaymentVouchers';
@@ -43,6 +43,7 @@ const Protected: React.FC<React.PropsWithChildren> = ({ children }) => {
 
 const App: React.FC = () => (
   <ErrorBoundary>
+    <Suspense fallback={<></>}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
@@ -97,6 +98,7 @@ const App: React.FC = () => (
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+    </Suspense>
   </ErrorBoundary>
 );
 

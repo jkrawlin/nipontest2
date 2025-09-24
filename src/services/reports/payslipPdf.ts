@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf';
 import { PayslipService } from '../api/payslips';
 import { PayrollService } from '../api/payroll';
 
@@ -7,6 +6,8 @@ export async function generateBatchPayslipPDF(batchId: string) {
   if (!batch) throw new Error('Batch not found');
   const slips = PayslipService.list(batchId);
   if (!slips.length) throw new Error('No payslips generated');
+  // Dynamically import jsPDF only when actually generating
+  const { jsPDF } = await import('jspdf');
   const doc = new jsPDF();
   slips.forEach((p, idx) => {
     if (idx>0) doc.addPage();

@@ -33,7 +33,8 @@ export const DashboardPage: React.FC = () => {
     try {
       const employees = await EmployeeService.getAllEmployees();
       const active = employees.filter(e => e.status === 'Active');
-      const expDocs = await EmployeeService.getExpiringDocuments(120);
+  // Reduce initial computation window for expiries to speed up load
+  const expDocs = await EmployeeService.getExpiringDocuments(45);
       const month = new Date().getMonth()+1; const year = new Date().getFullYear();
       // Approx payroll: sum current draft/approved batch or calculations if exist
       const batches = PayrollService.list().filter(b => b.month===month && b.year===year);
@@ -67,7 +68,7 @@ export const DashboardPage: React.FC = () => {
         activeCustomers: customers.filter(c=> c.status==='Active').length,
         customerMonthlyRevenue
       });
-      setExpiringDocs(expDocs.slice(0,8));
+  setExpiringDocs(expDocs.slice(0,6));
     } finally { setLoading(false); }
   })(); }, []);
 
