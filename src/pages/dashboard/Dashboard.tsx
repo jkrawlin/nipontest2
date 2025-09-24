@@ -37,7 +37,10 @@ export const DashboardPage: React.FC = () => {
       const dLast = new Date(); dLast.setMonth(dLast.getMonth()-1);
       const lastBatches = PayrollService.list().filter(b => b.month=== (dLast.getMonth()+1) && b.year===dLast.getFullYear());
       const lastPayroll = lastBatches.reduce((s,b)=> s + (b.calculations?.reduce((a,c)=> a + c.net,0) || 0),0);
-      const departments = new Set(employees.map(e => e.employment.department)).size;
+      // Departments only meaningful for permanent employees
+      const departments = new Set(
+        employees.filter(e=> e.employeeType==='Permanent').map(e => e.employment.department)
+      ).size;
       const nationalities = new Set(employees.map(e => e.personalInfo.nationality)).size;
       const docsCritical = expDocs.filter(d=> d.status==='critical').length;
       const docsWarning = expDocs.filter(d=> d.status==='warning').length;

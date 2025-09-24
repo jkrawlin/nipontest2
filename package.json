@@ -65,5 +65,9 @@
       "prettier --write",
       "eslint --cache --fix"
     ]
+  },
+  "vitest": {
+    "setupFiles": ["./vitest.setup.ts"],
+    "environment": "jsdom"
   }
 }

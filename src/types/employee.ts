@@ -68,3 +68,15 @@ export interface TemporaryEmployee extends BaseEmployee {
 
 export type Employee = PermanentEmployee | TemporaryEmployee;
 
+// Re-introduced generic document expiry projection for dashboards
+export interface ExpiringDocument {
+  employeeId: string;
+  employeeType: EmployeeType;
+  employeeName: string;
+  documentType: string;
+  documentNumber?: string;
+  expiryDate: string; // ISO date string
+  daysRemaining: number;
+  status: 'expired' | 'critical' | 'warning' | 'valid';
+}
+

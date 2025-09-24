@@ -32,6 +32,7 @@ export interface PayrollRecord {
 export interface SalaryCalculation {
   employeeId: string;
   employeeName: string;
+  employeeType?: 'Permanent' | 'Temporary';
   workingDays: number;
   basic: number;
   housing: number;
@@ -51,6 +52,8 @@ export interface PayrollAttendanceEntry {
   presentDays: number;
   absentDays: number;
   overtimeHours: number;
+  weekendOvertimeHours?: number;
+  holidayOvertimeHours?: number;
 }
 
 export interface PayrollBatch {
@@ -64,4 +67,7 @@ export interface PayrollBatch {
   adjustmentAudit?: Array<{ action: 'add' | 'edit' | 'remove'; adjustmentId: string; at: string; by?: string; details?: any }>;
   totalAmount: import('decimal.js').Decimal;
   status: 'draft' | 'approved' | 'processed';
+  calculationMode?: 'Permanent' | 'Temporary' | 'All';
+  overtimeConfig?: { regular: number; weekend: number; holiday: number };
+  attendanceImportAudit?: Array<{ id: string; fileName?: string; updated: number; invalid: number; warnings: number; at: string }>;
 }

@@ -50,6 +50,7 @@ export const PayslipService = {
       batchId: p.batchId,
       employeeId: p.employeeId,
       employeeName: p.employeeName,
+      employeeType: p.employeeType || '',
       month: p.period.month,
       year: p.period.year,
       code: l.code,

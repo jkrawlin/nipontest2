@@ -1,10 +1,22 @@
 import { PermanentEmployee } from '../../types/employee';
 
+// Provide a resilient storage wrapper so tests (node environment) work without a DOM localStorage
+const __memoryStore: Record<string, string> = {};
+const safeStorage = {
+  getItem(key: string) {
+    try { return (globalThis as any).localStorage?.getItem(key) ?? __memoryStore[key] ?? null; } catch { return __memoryStore[key] ?? null; }
+  },
+  setItem(key: string, value: string) {
+    try { (globalThis as any).localStorage?.setItem(key, value); } catch { /* ignore */ }
+    __memoryStore[key] = value;
+  }
+};
+
 export class PermanentEmployeeService {
   private static STORAGE_KEY = 'nipon_permanent_employees';
 
   static getAll(): PermanentEmployee[] {
-    const stored = localStorage.getItem(this.STORAGE_KEY);
+  const stored = safeStorage.getItem(this.STORAGE_KEY);
     if (!stored) { this.seedInitialData(); return this.getAll(); }
     return JSON.parse(stored);
   }
@@ -34,8 +46,19 @@ export class PermanentEmployeeService {
   }
   static calculateGratuity(employee: PermanentEmployee): number {
     const years = employee.endOfService.serviceYears; if (years <1) return 0; const basic = employee.compensation.basicSalary; let g=0; const firstFive=Math.min(years,5); g += (basic*3*firstFive)/4.33; if(years>5) g += (basic*4*(years-5))/4.33; return Math.round(g*100)/100; }
-  private static generateEmployeeCode(): string { const year=new Date().getFullYear(); const count=this.getAll().filter(e=>e.employeeCode.startsWith(`PRM-${year}`)).length+1; return `PRM-${year}-${String(count).padStart(4,'0')}`; }
-  private static save(list: PermanentEmployee[]) { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(list)); }
+  // IMPORTANT: Do not call getAll() here because during initial seeding storage is still empty and
+  // getAll() would trigger another seed causing infinite recursion. Instead, read raw storage.
+  private static generateEmployeeCode(): string {
+    const year = new Date().getFullYear();
+    const raw = safeStorage.getItem(this.STORAGE_KEY);
+    let existing: PermanentEmployee[] = [];
+    if (raw) {
+      try { existing = JSON.parse(raw) as PermanentEmployee[]; } catch { existing = []; }
+    }
+    const count = existing.filter(e => e.employeeCode.startsWith(`PRM-${year}`)).length + 1;
+    return `PRM-${year}-${String(count).padStart(4,'0')}`;
+  }
+  private static save(list: PermanentEmployee[]) { safeStorage.setItem(this.STORAGE_KEY, JSON.stringify(list)); }
   private static seedInitialData() {
     const sample: Omit<PermanentEmployee,'id'|'employeeCode'|'createdAt'|'updatedAt'|'employeeType'>[] = [
       {

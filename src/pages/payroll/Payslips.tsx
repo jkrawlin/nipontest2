@@ -34,9 +34,9 @@ export const PayslipsPage: React.FC = () => {
 	}, [batchId]);
 
 		useEffect(() => { (async () => {
-			const emps = await EmployeeService.getActiveEmployees();
-			setDepartments(Array.from(new Set(emps.map(e => e.employment.department))).sort());
-		})(); }, []);
+				const emps = await EmployeeService.getActiveEmployees();
+				setDepartments(Array.from(new Set(emps.filter(e=> e.employeeType==='Permanent').map(e => e.employment.department))).sort());
+			})(); }, []);
 
 	const handleCSV = () => {
 		if (!batchId) return;
@@ -123,7 +123,7 @@ export const PayslipsPage: React.FC = () => {
 						<tbody>
 											{payslips
 												.filter(p => !search || p.employeeName.toLowerCase().includes(search.toLowerCase()))
-												.filter(p => !department || (EmployeeService as any)._EMPLOYEE_MEM?.get?.(p.employeeId)?.employment?.department === department)
+												.filter(p => !department || (() => { const emp = (EmployeeService as any).getById?.(p.employeeId); return emp?.employeeType==='Permanent' && emp.employment.department === department; })())
 												.map(p => (
 								<tr key={p.id} className="border-b last:border-0">
 									<td className="px-3 py-2 font-medium">{p.employeeName}</td>

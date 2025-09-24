@@ -53,7 +53,10 @@ export const PayrollService = {
       attendance: {},
       calculations: [],
       totalAmount: new Decimal(0),
-      status: 'draft'
+      status: 'draft',
+      calculationMode: 'Permanent',
+      overtimeConfig: { regular: 1.25, weekend: 1.5, holiday: 2 },
+      attendanceImportAudit: []
     };
     _BATCHES.push(batch);
     persist();
@@ -85,6 +88,31 @@ export const PayrollService = {
     batch.totalAmount = new Decimal(calculations.reduce((s, c) => s + c.net, 0));
     this.upsert(batch);
     return batch;
+  },
+  updateCalculationMode(batchId: string, mode: 'Permanent' | 'Temporary' | 'All') {
+    load();
+    const batch = this.getById(batchId);
+    if (!batch) throw new Error('Batch not found');
+    batch.calculationMode = mode;
+    this.upsert(batch);
+    return batch;
+  },
+  updateOvertimeConfig(batchId: string, cfg: Partial<{ regular: number; weekend: number; holiday: number }>) {
+    load();
+    const batch = this.getById(batchId);
+    if (!batch) throw new Error('Batch not found');
+    batch.overtimeConfig = { ...(batch.overtimeConfig || { regular:1.25, weekend:1.5, holiday:2 }), ...cfg };
+    this.upsert(batch);
+    return batch.overtimeConfig;
+  },
+  addAttendanceImportAudit(batchId: string, entry: { fileName?: string; updated: number; invalid: number; warnings: number; }) {
+    load();
+    const batch = this.getById(batchId);
+    if (!batch) throw new Error('Batch not found');
+    batch.attendanceImportAudit = batch.attendanceImportAudit || [];
+    batch.attendanceImportAudit.push({ id: crypto.randomUUID(), at: new Date().toISOString(), ...entry });
+    this.upsert(batch);
+    return batch.attendanceImportAudit[batch.attendanceImportAudit.length - 1];
   },
   computeVersionHash(batchId: string) {
     // Lightweight deterministic hash: JSON stable stringify of relevant batch slices.

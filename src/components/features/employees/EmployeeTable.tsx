@@ -10,7 +10,10 @@ import { useDebounce } from '../../../hooks/useDebounce';
 import { useNotificationStore } from '../../../stores/notificationStore';
 import { Dialog } from '../../ui/dialog';
 import { EmployeeForm } from './EmployeeForm';
-import { useCreateEmployee, useUpdateEmployee } from '../../../hooks/useEmployeeMutations';
+import { PermanentEmployeeForm } from './PermanentEmployeeForm';
+import { TemporaryEmployeeForm } from './TemporaryEmployeeForm';
+// Creation/Update disabled in compatibility phase – forms will be reintroduced per employee type
+// import { useCreateEmployee, useUpdateEmployee } from '../../../hooks/useEmployeeMutations';
 import { Button } from '../../ui/button';
 import { EmployeeService } from '../../../services/api/employees';
 
@@ -24,13 +27,13 @@ export const EmployeeTable: React.FC = () => {
   const { data, isLoading, refetch, error } = useEmployees({ search: debounced || undefined, page, pageSize });
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Employee | null>(null);
-  const createMutation = useCreateEmployee();
-  const updateMutation = useUpdateEmployee(editing?.id);
+  // const createMutation = useCreateEmployee();
+  // const updateMutation = useUpdateEmployee(editing?.id);
 
-  const openCreate = () => {
-    setEditing(null);
-    setOpen(true);
-  };
+  const [showAddPerm, setShowAddPerm] = React.useState(false);
+  const [showAddTemp, setShowAddTemp] = React.useState(false);
+  const openCreatePermanent = () => setShowAddPerm(true);
+  const openCreateTemporary = () => setShowAddTemp(true);
 
   const onRowClick = async (emp: Employee) => {
     // Optionally could refetch full record; placeholder uses existing object
@@ -54,24 +57,38 @@ export const EmployeeTable: React.FC = () => {
       {
         id: 'name',
         header: 'Name',
-        cell: ({ row }) => (
-          <div>
-            {row.original.personalInfo.firstName} {row.original.personalInfo.lastName}
-            <div className="text-xs text-gray-500">{row.original.employment.position}</div>
-          </div>
-        )
+        cell: ({ row }) => {
+          const emp = row.original;
+          const position = emp.employeeType==='Permanent' ? emp.employment.position : emp.contract.position;
+          return (
+            <div>
+              {emp.personalInfo.firstName} {emp.personalInfo.lastName}
+              <div className="text-xs text-gray-500">{position}</div>
+            </div>
+          );
+        }
       },
       {
-        accessorFn: (r) => r.employment.department,
-        id: 'department',
-        header: 'Department',
-        cell: ({ row }) => <Badge variant="secondary">{row.original.employment.department}</Badge>
+        id: 'deptOrClient',
+        header: 'Dept/Client',
+        cell: ({ row }) => {
+          const emp = row.original;
+          if (emp.employeeType==='Permanent') {
+            return <Badge variant="secondary">{emp.employment.department}</Badge>;
+          }
+            return <Badge variant="outline">{emp.contract.client}</Badge>;
+        }
       },
-        {
-        accessorFn: (r) => r.compensation.basicSalary,
-        id: 'basicSalary',
-        header: 'Basic Salary',
-        cell: ({ row }) => formatCurrency(row.original.compensation.basicSalary)
+      {
+        id: 'baseOrRate',
+        header: 'Base / Rate',
+        cell: ({ row }) => {
+          const emp = row.original;
+          if (emp.employeeType==='Permanent') {
+            return formatCurrency(emp.compensation.basicSalary);
+          }
+          return `${emp.compensation.rateType} ${formatCurrency(emp.compensation.rate)}`;
+        }
       },
       {
         accessorKey: 'status',
@@ -97,7 +114,10 @@ export const EmployeeTable: React.FC = () => {
   return (
     <div className="space-y-2">
       <DataTableToolbar value={search} onChange={(v) => { setSearch(v); setPage(1); }} onRefresh={() => refetch()}>
-        <Button size="sm" onClick={openCreate}>Add Employee</Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={openCreatePermanent}>Add Permanent</Button>
+          <Button size="sm" variant="outline" onClick={openCreateTemporary}>Add Temporary</Button>
+        </div>
       </DataTableToolbar>
       <DataTable<Employee>
         columns={columns}
@@ -115,26 +135,8 @@ export const EmployeeTable: React.FC = () => {
           </div>
         </div>
       )}
-      <Dialog open={open} onClose={() => setOpen(false)} title={editing ? 'Edit Employee' : 'New Employee'} size="lg">
-        <EmployeeForm
-          employee={editing}
-          submitting={createMutation.isPending || updateMutation.isPending}
-          onSubmit={async (vals) => {
-            try {
-              if (editing) {
-                await updateMutation.mutateAsync(vals);
-                push({ title: 'Employee Updated', message: editing.employeeCode, type: 'success' });
-              } else {
-                const emp = await createMutation.mutateAsync(vals);
-                push({ title: 'Employee Created', message: emp.employeeCode, type: 'success' });
-              }
-              setOpen(false);
-            } catch (e) {
-              push({ title: 'Save Failed', message: (e as Error).message, type: 'error' });
-            }
-          }}
-        />
-      </Dialog>
+  {showAddPerm && <div className="mt-4"><PermanentEmployeeForm onCreated={()=> { setShowAddPerm(false); refetch(); }} /></div>}
+  {showAddTemp && <div className="mt-4"><TemporaryEmployeeForm onCreated={()=> { setShowAddTemp(false); refetch(); }} /></div>}
     </div>
   );
 };

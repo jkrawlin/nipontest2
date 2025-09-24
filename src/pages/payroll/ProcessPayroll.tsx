@@ -9,6 +9,9 @@ import { Check, Calendar, Clock, Calculator, PlusCircle, CheckCircle, FileText, 
 import { validatePayroll } from '../../lib/payroll/validation';
 import { WPSReportService } from '../../services/reports/wps';
 import { PayslipService } from '../../services/api/payslips';
+import { TemporaryEmployeeService } from '../../services/api/temporaryEmployees';
+import { TemporaryAttendanceImport } from '../../components/features/payroll/TemporaryAttendanceImport';
+import { generateBatchPayslipPDF } from '../../services/reports';
 
 // UI components (lightweight local fallbacks if not present in project structure)
 import { Button } from '../../components/ui/button';
@@ -110,7 +113,20 @@ const AttendanceReviewStep: React.FC<StepComponentProps> = ({ onNext, onBack, pa
 					</Table>
 				</div>
 			)}
-			<div className="flex justify-between pt-4">
+			<div className="space-y-4">
+					<TemporaryAttendanceImport batchId={payrollData.id!} />
+					{payrollData.attendanceImportAudit && payrollData.attendanceImportAudit.length > 0 && (
+						<div className="border rounded p-3 bg-gray-50">
+							<h4 className="text-xs font-semibold mb-1">Attendance Imports</h4>
+							<ul className="text-[11px] space-y-1 max-h-40 overflow-auto">
+								{payrollData.attendanceImportAudit.slice().reverse().map(a => (
+									<li key={a.id}>{new Date(a.at).toLocaleString()} – {a.fileName || 'upload'} updated:{a.updated} invalid:{a.invalid}{a.warnings?` warn:${a.warnings}`:''}</li>
+								))}
+							</ul>
+						</div>
+					)}
+				</div>
+			<div className="flex justify-between pt-2">
 				<Button variant="outline" onClick={onBack}><ChevronLeft className="mr-1 h-4 w-4"/>Back</Button>
 				<Button onClick={handleContinue}>Continue<ChevronRight className="ml-1 h-4 w-4"/></Button>
 			</div>
@@ -122,42 +138,90 @@ interface SalaryCalculationStepProps { payrollData: PayrollBatch; onNext: (data:
 const SalaryCalculationStep: React.FC<SalaryCalculationStepProps> = ({ payrollData, onNext, onBack }) => {
 	const [calculations, setCalculations] = useState<SalaryCalculation[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [mode, setMode] = useState<'Permanent' | 'Temporary' | 'All'>(payrollData.calculationMode || 'Permanent');
+	const [otRegular, setOtRegular] = useState<number>(payrollData.overtimeConfig?.regular || 1.25);
+	const [otWeekend, setOtWeekend] = useState<number>(payrollData.overtimeConfig?.weekend || 1.5);
+	const [otHoliday, setOtHoliday] = useState<number>(payrollData.overtimeConfig?.holiday || 2);
 
 	useEffect(() => { void calculateSalaries(); // eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const calculateSalaries = async () => {
 		setLoading(true);
-		const employees = await EmployeeService.getActiveEmployees();
-		const calcs: SalaryCalculation[] = employees.map(emp => {
-			const workingDays = payrollData.attendance?.[emp.id]?.presentDays || 30;
-			const dailyRate = new Decimal(emp.compensation.basicSalary).div(30);
-			const basic = dailyRate.mul(workingDays);
-			const housing = new Decimal(emp.compensation.housingAllowance || 0);
-			const transport = new Decimal(emp.compensation.transportAllowance || 0);
-			const other = new Decimal(emp.compensation.otherAllowances || 0);
-			const overtimeHours = payrollData.attendance?.[emp.id]?.overtimeHours || 0;
-			const hourlyRate = dailyRate.div(8);
-			const overtime = hourlyRate.mul(1.25).mul(overtimeHours); // basic normal OT multiplier (extend for Friday/holiday rules later)
-			const gross = basic.plus(housing).plus(transport).plus(other).plus(overtime);
-			const absenceDays = payrollData.attendance?.[emp.id]?.absentDays || 0;
-			const absenceDeduction = dailyRate.mul(absenceDays);
-			const unpaidLeave = dailyRate.mul(emp.leave.unpaidLeaveDays || 0);
-			const totalDeductions = absenceDeduction.plus(unpaidLeave);
-			const net = gross.minus(totalDeductions);
-			return {
-				employeeId: emp.id,
-				employeeName: `${emp.personalInfo.firstName} ${emp.personalInfo.lastName}`,
-				workingDays,
-				basic: basic.toNumber(),
-				housing: housing.toNumber(),
-				transport: transport.toNumber(),
-				other: other.toNumber(),
-				overtime: overtime.toNumber(),
-				gross: gross.toNumber(),
-				deductions: totalDeductions.toNumber(),
-				net: net.toNumber()
-			};
+		const allEmployees = await EmployeeService.getActiveEmployees();
+		const permanent = allEmployees.filter(e=> e.employeeType==='Permanent');
+		// Build a light wrapper for temporary employees using their own service for earnings
+		const temporaryRaw = TemporaryEmployeeService.getAll().filter(e=> e.status==='Active');
+
+		const selected: Array<any> = mode==='All' ? [...permanent, ...temporaryRaw] : mode==='Permanent' ? permanent : temporaryRaw;
+
+		const calcs: SalaryCalculation[] = selected.map(emp => {
+			if (emp.employeeType === 'Permanent') {
+				const workingDays = payrollData.attendance?.[emp.id]?.presentDays || 30;
+				const dailyRate = new Decimal(emp.compensation.basicSalary).div(30);
+				const basic = dailyRate.mul(workingDays);
+				const housing = new Decimal(emp.compensation.housingAllowance || 0);
+				const transport = new Decimal(emp.compensation.transportAllowance || 0);
+				const other = new Decimal(emp.compensation.otherAllowances || 0);
+				const att = payrollData.attendance?.[emp.id];
+				const overtimeHours = att?.overtimeHours || 0;
+				const weekendOT = att?.weekendOvertimeHours || 0;
+				const holidayOT = att?.holidayOvertimeHours || 0;
+				const hourlyRate = dailyRate.div(8);
+				const overtime = hourlyRate.mul(otRegular).mul(overtimeHours)
+					.plus(hourlyRate.mul(otWeekend).mul(weekendOT))
+					.plus(hourlyRate.mul(otHoliday).mul(holidayOT));
+				const absenceDays = payrollData.attendance?.[emp.id]?.absentDays || 0;
+				const absenceDeduction = dailyRate.mul(absenceDays);
+				const unpaidLeave = new Decimal(0);
+				const gross = basic.plus(housing).plus(transport).plus(other).plus(overtime);
+				const totalDeductions = absenceDeduction.plus(unpaidLeave);
+				const net = gross.minus(totalDeductions);
+				return {
+					employeeId: emp.id,
+					employeeName: `${emp.personalInfo.firstName} ${emp.personalInfo.lastName}`,
+					employeeType: 'Permanent' as const,
+					workingDays,
+					basic: basic.toNumber(),
+					housing: housing.toNumber(),
+					transport: transport.toNumber(),
+					other: other.toNumber(),
+					overtime: overtime.toNumber(),
+					gross: gross.toNumber(),
+					deductions: totalDeductions.toNumber(),
+					net: net.toNumber()
+				};
+			} else { // Temporary
+				// Temporary earnings are pre-aggregated: treat entire earning as 'basic' for now + overtime embedded in their attendance logic
+				const earnings = TemporaryEmployeeService.calculateEarnings(emp);
+						// Compute overtime monetary value distinctly for temporary employees
+						const overtimeMonetary = (() => {
+							const rt = emp.compensation.rateType;
+							if (rt === 'Hourly' && emp.attendance?.overtimeHours && emp.compensation.overtimeRate) {
+								return emp.compensation.overtimeRate * emp.attendance.overtimeHours;
+							}
+							if (rt === 'Daily' && emp.attendance?.overtimeHours && emp.compensation.overtimeRate) {
+								// Assume overtime rate provided is hourly equivalent; treat daily as 8h baseline
+								return emp.compensation.overtimeRate * emp.attendance.overtimeHours;
+							}
+							return 0;
+						})();
+						const baseEarnings = earnings - overtimeMonetary;
+						return {
+					employeeId: emp.id,
+					employeeName: `${emp.personalInfo.firstName} ${emp.personalInfo.lastName}`,
+					employeeType: 'Temporary' as const,
+					workingDays: emp.attendance?.totalDaysWorked || 0,
+							basic: baseEarnings < 0 ? earnings : baseEarnings,
+					housing: 0,
+					transport: 0,
+					other: 0,
+							overtime: overtimeMonetary,
+							gross: baseEarnings + overtimeMonetary,
+					deductions: 0,
+							net: baseEarnings + overtimeMonetary
+				};
+			}
 		});
 		setCalculations(calcs);
 		setLoading(false);
@@ -165,8 +229,36 @@ const SalaryCalculationStep: React.FC<SalaryCalculationStepProps> = ({ payrollDa
 
 	return (
 		<div className="space-y-6">
-			<div className="flex justify-between items-center">
+			<div className="flex items-center gap-4">
 				<h3 className="text-lg font-semibold">Salary Calculations</h3>
+				<div className="text-xs flex items-center gap-1">
+					<span className="text-gray-500">Mode:</span>
+					<select value={mode} onChange={e=> { const m = e.target.value as any; setMode(m); PayrollService.updateCalculationMode(payrollData.id!, m); }} className="border rounded px-2 py-1 text-xs">
+						<option value="Permanent">Permanent</option>
+						<option value="Temporary">Temporary</option>
+						<option value="All">All</option>
+					</select>
+					<button onClick={()=> calculateSalaries()} className="text-blue-600 underline text-xs">Recalculate</button>
+				</div>
+			</div>
+			<div className="flex flex-wrap gap-4 items-end text-xs">
+          <div className="space-y-1">
+            <label className="block">OT Regular x</label>
+            <input type="number" step="0.01" value={otRegular} onChange={e=> { const v= parseFloat(e.target.value)||1.25; setOtRegular(v); PayrollService.updateOvertimeConfig(payrollData.id!, { regular: v }); }} className="border rounded px-2 py-1 w-20" />
+          </div>
+          <div className="space-y-1">
+            <label className="block">OT Weekend x</label>
+            <input type="number" step="0.01" value={otWeekend} onChange={e=> { const v= parseFloat(e.target.value)||1.5; setOtWeekend(v); PayrollService.updateOvertimeConfig(payrollData.id!, { weekend: v }); }} className="border rounded px-2 py-1 w-20" />
+          </div>
+          <div className="space-y-1">
+            <label className="block">OT Holiday x</label>
+            <input type="number" step="0.01" value={otHoliday} onChange={e=> { const v= parseFloat(e.target.value)||2; setOtHoliday(v); PayrollService.updateOvertimeConfig(payrollData.id!, { holiday: v }); }} className="border rounded px-2 py-1 w-20" />
+          </div>
+          <div className="space-y-1">
+            <button type="button" onClick={()=> calculateSalaries()} className="mt-4 text-blue-600 underline">Apply OT Config</button>
+          </div>
+        </div>
+			<div className="flex justify-between items-center">
 				<span className="text-xs bg-gray-100 px-2 py-1 rounded">{payrollData.month}/{payrollData.year}</span>
 			</div>
 			{loading ? (
@@ -408,9 +500,10 @@ const AdjustmentsStep: React.FC<StepComponentProps> = ({ onNext, onBack, payroll
 const ReviewApprovalStep: React.FC<StepComponentProps> = ({ onNext, onBack, payrollData }) => {
 	const total = payrollData.calculations?.reduce((s,c)=> s + c.net, 0) || 0;
 	const validation = validatePayroll(payrollData);
+  const [includeTemp, setIncludeTemp] = useState(false);
 
 	const handleExportWPS = async () => {
-		const csv = await WPSReportService.exportCSV(payrollData.id!);
+		const csv = await WPSReportService.exportCSV(payrollData.id!, { includeTemporary: includeTemp });
 		const blob = new Blob([csv], { type: 'text/csv' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
@@ -439,8 +532,11 @@ const ReviewApprovalStep: React.FC<StepComponentProps> = ({ onNext, onBack, payr
 						</ul>
 					)}
 				</div>
+        <div className="flex items-center gap-3 text-xs pt-2">
+          <label className="flex items-center gap-1"><input type="checkbox" checked={includeTemp} onChange={e=> setIncludeTemp(e.target.checked)} />Include Temporary in WPS</label>
+        </div>
 			</div>
-			<div className="flex justify-between pt-4">
+			<div className="flex justify-between pt-2">
 				<Button variant="outline" onClick={onBack}><ChevronLeft className="mr-1 h-4 w-4"/>Back</Button>
 				<Button variant="outline" onClick={handleExportWPS}>Export WPS CSV</Button>
 				<Button disabled={validation.hasErrors} onClick={handleGeneratePayslips}>Approve & Generate Payslips<Check className="ml-1 h-4 w-4"/></Button>
@@ -449,12 +545,20 @@ const ReviewApprovalStep: React.FC<StepComponentProps> = ({ onNext, onBack, payr
 	);
 };
 const PayslipGenerationStep: React.FC<StepComponentProps> = ({ onBack, payrollData }) => {
+  const [downloading, setDownloading] = useState(false);
+  const handlePDF = async () => {
+    setDownloading(true);
+    try {
+      await generateBatchPayslipPDF(payrollData.id!);
+    } finally { setDownloading(false); }
+  };
 	return (
 		<div className="space-y-4">
 			<h3 className="text-lg font-semibold">Payslips</h3>
-			<p className="text-sm text-gray-600">(Placeholder) – payslip dataset is ready (batch {payrollData.id}). Future: generate PDF / WPS file.</p>
+			<p className="text-sm text-gray-600">Payslips ready for batch {payrollData.id}. Download combined PDF below.</p>
 			<div className="flex gap-3">
 				<Button variant="outline" onClick={onBack}><ChevronLeft className="mr-1 h-4 w-4"/>Back</Button>
+        <Button variant="outline" disabled={downloading} onClick={handlePDF}>{downloading ? 'Generating…' : 'Download PDF'}</Button>
 				<Button onClick={() => window.history.back()}>Finish</Button>
 			</div>
 		</div>

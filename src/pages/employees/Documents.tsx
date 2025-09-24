@@ -44,9 +44,9 @@ export const EmployeeDocumentsPage: React.FC = () => {
 								<tr key={d.employeeId + d.documentType} className="border-b last:border-0">
 									<td className="px-3 py-2 whitespace-nowrap font-medium">{d.employeeName}</td>
 									<td className="px-3 py-2">{d.documentType}</td>
-									<td className={"px-3 py-2 text-right font-mono text-xs " + (d.status==='expired' ? 'text-red-600' : d.status==='expiring-soon' ? 'text-amber-600' : d.status==='expiring' ? 'text-yellow-600':'text-green-600')}>{d.daysRemaining}</td>
+									<td className={"px-3 py-2 text-right font-mono text-xs " + (d.status==='expired' ? 'text-red-600' : d.status==='critical' ? 'text-amber-600' : d.status==='warning' ? 'text-yellow-600':'text-green-600')}>{d.daysRemaining}</td>
 									<td className="px-3 py-2 text-xs">{new Date(d.expiryDate).toLocaleDateString('en-US')}</td>
-									<td className="px-3 py-2 capitalize text-xs">{d.status.replace('-', ' ')}</td>
+									<td className="px-3 py-2 capitalize text-xs">{d.status}</td>
 								</tr>
 							))}
 							{docs.length === 0 && <tr><td colSpan={5} className="px-3 py-8 text-center text-gray-500">No documents within selected window.</td></tr>}

@@ -12,6 +12,7 @@ export interface Payslip {
   batchId: string;
   employeeId: string;
   employeeName: string;
+  employeeType?: 'Permanent' | 'Temporary';
   period: { month: number; year: number };
   lines: PayslipLine[];
   gross: number;
@@ -29,13 +30,18 @@ export interface PayslipGenerationResult {
 }
 
 export function buildPayslipFromCalculation(batch: PayrollBatch, calc: SalaryCalculation, adjustments: PayrollAdjustment[] = [], versionHash: string): Payslip {
-  const earningLines: PayslipLine[] = [
-    { code: 'BASIC', description: 'Basic Salary', amount: calc.basic, type: 'earning' },
-    { code: 'HOU', description: 'Housing Allowance', amount: calc.housing, type: 'earning' },
-    { code: 'TRANS', description: 'Transport Allowance', amount: calc.transport, type: 'earning' },
-  ];
-  if (calc.other) earningLines.push({ code: 'OTHR', description: 'Other Allowances', amount: calc.other, type: 'earning' });
-  if (calc.overtime) earningLines.push({ code: 'OT', description: 'Overtime', amount: calc.overtime, type: 'earning' });
+  // Distinguish layout for Temporary: consolidated earnings line; Permanent: detailed breakdown.
+  const earningLines: PayslipLine[] = [];
+  if (calc.employeeType === 'Temporary') {
+    earningLines.push({ code: 'EARN', description: 'Total Earnings', amount: calc.basic, type: 'earning' });
+    if (calc.overtime) earningLines.push({ code: 'OT', description: 'Overtime', amount: calc.overtime, type: 'earning' });
+  } else {
+    earningLines.push({ code: 'BASIC', description: 'Basic Salary', amount: calc.basic, type: 'earning' });
+    earningLines.push({ code: 'HOU', description: 'Housing Allowance', amount: calc.housing, type: 'earning' });
+    earningLines.push({ code: 'TRANS', description: 'Transport Allowance', amount: calc.transport, type: 'earning' });
+    if (calc.other) earningLines.push({ code: 'OTHR', description: 'Other Allowances', amount: calc.other, type: 'earning' });
+    if (calc.overtime) earningLines.push({ code: 'OT', description: 'Overtime', amount: calc.overtime, type: 'earning' });
+  }
 
   const deductionLines: PayslipLine[] = [];
   if (calc.deductions) deductionLines.push({ code: 'ABS', description: 'Absence / Leave Deductions', amount: calc.deductions, type: 'deduction' });
@@ -58,7 +64,8 @@ export function buildPayslipFromCalculation(batch: PayrollBatch, calc: SalaryCal
     batchId: batch.id!,
     employeeId: calc.employeeId,
     employeeName: calc.employeeName,
-    period: { month: batch.month, year: batch.year },
+  period: { month: batch.month, year: batch.year },
+  employeeType: calc.employeeType,
     lines: [...earningLines, ...deductionLines],
     gross,
     deductions,

@@ -1,13 +1,27 @@
 import { TemporaryEmployee } from '../../types/employee';
 
+const __memoryStoreTmp: Record<string, string> = {};
+const safeStorageTmp = {
+  getItem(k: string) { try { return (globalThis as any).localStorage?.getItem(k) ?? __memoryStoreTmp[k] ?? null; } catch { return __memoryStoreTmp[k] ?? null; } },
+  setItem(k: string, v: string) { try { (globalThis as any).localStorage?.setItem(k,v); } catch { /* ignore */ } __memoryStoreTmp[k]=v; }
+};
+
 export class TemporaryEmployeeService {
   private static STORAGE_KEY='nipon_temporary_employees';
-  static getAll(): TemporaryEmployee[] { const s=localStorage.getItem(this.STORAGE_KEY); if(!s){ this.seedInitial(); return this.getAll(); } return JSON.parse(s); }
+  static getAll(): TemporaryEmployee[] { const s=safeStorageTmp.getItem(this.STORAGE_KEY); if(!s){ this.seedInitial(); return this.getAll(); } return JSON.parse(s); }
   static create(data: Omit<TemporaryEmployee,'id'|'employeeCode'|'createdAt'|'updatedAt'|'employeeType'>): TemporaryEmployee { const list=this.getAll(); const emp: TemporaryEmployee={...data,id:crypto.randomUUID(),employeeCode:this.genCode(),employeeType:'Temporary',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}; list.push(emp); this.save(list); return emp; }
   static calculateEarnings(e: TemporaryEmployee): number { const {rateType,rate,overtimeRate,foodAllowance}=e.compensation; const att=e.attendance; let total=0; if(rateType==='Daily') total = rate*att.totalDaysWorked; else if(rateType==='Hourly') { total = rate*(att.totalHoursWorked||0); if(att.overtimeHours && overtimeRate) total+=overtimeRate*att.overtimeHours; } else { total=rate; } total += foodAllowance||0; return Math.round(total*100)/100; }
   static processPayment(id:string, amount:number) { const list=this.getAll(); const emp=list.find(e=>e.id===id); if(!emp) return; emp.payment.lastPaymentDate=new Date().toISOString(); emp.payment.lastPaymentAmount=amount; emp.compensation.totalEarnings=(emp.compensation.totalEarnings||0)+amount; this.save(list); }
-  private static genCode(): string { const year=new Date().getFullYear(); const list=this.getAll(); const count=list.filter(e=> e.employeeCode.startsWith(`TMP-${year}`)).length+1; return `TMP-${year}-${String(count).padStart(4,'0')}`; }
-  private static save(list: TemporaryEmployee[]) { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(list)); }
+  // Avoid calling getAll() here to prevent recursive seeding loops; read raw storage directly.
+  private static genCode(): string {
+    const year = new Date().getFullYear();
+    const raw = safeStorageTmp.getItem(this.STORAGE_KEY);
+    let existing: TemporaryEmployee[] = [];
+    if (raw) { try { existing = JSON.parse(raw) as TemporaryEmployee[]; } catch { existing = []; } }
+    const count = existing.filter(e => e.employeeCode.startsWith(`TMP-${year}`)).length + 1;
+    return `TMP-${year}-${String(count).padStart(4,'0')}`;
+  }
+  private static save(list: TemporaryEmployee[]) { safeStorageTmp.setItem(this.STORAGE_KEY, JSON.stringify(list)); }
   private static seedInitial() { const sample: Omit<TemporaryEmployee,'id'|'employeeCode'|'createdAt'|'updatedAt'|'employeeType'>[]=[{ personalInfo:{firstName:'Kumar',lastName:'Singh',fatherName:'Raj Singh',dateOfBirth:'1990-07-20',placeOfBirth:'Mumbai',nationality:'Indian',religion:'Hindu',gender:'Male',maritalStatus:'Single',bloodGroup:'B+'}, documents:{ passport:{number:'P1234567',issueDate:'2021-03-15',expiryDate:'2031-03-14',issuePlace:'Mumbai'}, visa:{number:'VT987654',issueDate:'2024-01-01',expiryDate:'2024-03-31',type:'Visit',sponsor:'Client Company LLC'}, workPermit:{number:'WP123456',issueDate:'2024-01-15',expiryDate:'2024-03-31'}}, contract:{contractNumber:'TMP-2024-001',startDate:'2024-01-15',endDate:'2024-03-31',client:'Qatar Petroleum',clientLocation:'Ras Laffan',position:'Welder',workType:'Daily Wage'}, compensation:{rateType:'Daily',rate:150,overtimeRate:25,foodAllowance:20,transportProvided:true,accommodationProvided:true}, attendance:{totalDaysWorked:45,overtimeHours:30}, payment:{paymentMethod:'Cash'}, contact:{mobileQatar:'+97466789012',address:'Labor Camp, Industrial Area, Doha',emergencyContact:{name:'Priya Singh',relationship:'Mother',phone:'+919876543210'}}, status:'Active' }];
     const list = sample.map(s=>({...s,id:crypto.randomUUID(),employeeCode:this.genCode(),employeeType:'Temporary',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()})) as TemporaryEmployee[]; this.save(list); }
 }

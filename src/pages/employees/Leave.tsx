@@ -32,17 +32,17 @@ export const EmployeeLeavePage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {employees.map(e => (
+              {employees.filter(e=> e.employeeType==='Permanent').map(e => (
                 <tr key={e.id} className="border-b last:border-0">
                   <td className="px-3 py-2 font-medium whitespace-nowrap">{e.personalInfo.firstName} {e.personalInfo.lastName}</td>
                   <td className="px-3 py-2 text-right">{e.leave.annualLeaveBalance}</td>
-                  <td className="px-3 py-2 text-right">{e.leave.annualLeaveUsed}</td>
+                  <td className="px-3 py-2 text-right">{e.leave.annualLeaveTaken}</td>
                   <td className="px-3 py-2 text-right">{e.leave.sickLeaveBalance}</td>
-                  <td className="px-3 py-2 text-right">{e.leave.sickLeaveUsed}</td>
+                  <td className="px-3 py-2 text-right">{e.leave.sickLeaveTaken}</td>
                   <td className="px-3 py-2 text-right">{e.leave.unpaidLeaveDays}</td>
                 </tr>
               ))}
-              {employees.length === 0 && <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-500">No employees.</td></tr>}
+              {employees.filter(e=> e.employeeType==='Permanent').length === 0 && <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-500">No permanent employees.</td></tr>}
             </tbody>
           </table>
         </div>
