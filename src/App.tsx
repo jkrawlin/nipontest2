@@ -1,6 +1,7 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
+import { checkDomain } from '@/lib/firebase/domainCheck';
 const LoginPage = lazy(() => import('./pages/auth/Login').then(m => ({ default: m.LoginPage })));
 const DashboardPage = lazy(() => import('./pages/dashboard/Dashboard').then(m => ({ default: m.DashboardPage })));
 const EmployeeListPage = lazy(() => import('./pages/employees/EmployeeList').then(m => ({ default: m.EmployeeListPage })));
@@ -42,7 +43,14 @@ const Protected: React.FC<React.PropsWithChildren> = ({ children }) => {
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
-const App: React.FC = () => (
+const App: React.FC = () => {
+  const initialize = useAuthStore((s) => (s as any).initialize);
+  useEffect(() => {
+    checkDomain();
+    const unsub = initialize?.();
+    return () => { if (typeof unsub === 'function') unsub(); };
+  }, [initialize]);
+  return (
   <ErrorBoundary>
     <Suspense fallback={<div className="p-6 text-sm">Loading...</div>}>
       <Routes>
@@ -103,5 +111,6 @@ const App: React.FC = () => (
     </Suspense>
   </ErrorBoundary>
 );
+}
 
 export default App;

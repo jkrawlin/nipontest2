@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { STORAGE_KEYS } from '../lib/constants';
 import type { LoginSchema } from '../lib/validators';
-import { AuthService } from '../services/auth';
+import { signIn, signOut as fbSignOut, onAuthChange, getCurrentUser } from '@/lib/firebase/auth';
 interface LoginResult {
   role: string;
   name: string;
@@ -18,6 +18,7 @@ interface AuthState {
   error?: string;
   login: (data: LoginSchema) => Promise<void>;
   logout: () => Promise<void>;
+  initialize: () => () => void;
 }
 
 const initialSession = safeJsonParse<LoginResult>(localStorage.getItem(STORAGE_KEYS.SESSION));
@@ -28,8 +29,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   async login(data) {
     set({ loading: true, error: undefined });
     try {
-  const auth = await AuthService.login(data.email, data.password);
-  const result = { role: auth.user.role, name: auth.user.name, user: { email: auth.user.email }, issuedAt: Date.now() };
+      const userData = await signIn(data.email, data.password);
+      const result = { role: (userData as any).role || 'viewer', name: (userData as any).displayName || data.email.split('@')[0], user: { email: (userData as any).email || data.email }, issuedAt: Date.now() };
       localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(result));
       set({ session: result });
     } catch (e) {
@@ -40,8 +41,29 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
   async logout() {
-  // No remote logout necessary in dev mode
+    try { await fbSignOut(); } catch {}
     localStorage.removeItem(STORAGE_KEYS.SESSION);
     set({ session: null });
+  },
+  initialize() {
+    set({ loading: true });
+    const unsub = onAuthChange((firebaseUser) => {
+      if (firebaseUser) {
+        const result: LoginResult = { role: 'viewer', name: firebaseUser.displayName || firebaseUser.email || 'User', user: { email: firebaseUser.email || '' }, issuedAt: Date.now() };
+        localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(result));
+        set({ session: result, loading: false });
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.SESSION);
+        set({ session: null, loading: false });
+      }
+    });
+    // Initialize from current user synchronously if present
+    const cu = getCurrentUser();
+    if (cu) {
+      const result: LoginResult = { role: 'viewer', name: cu.displayName || cu.email || 'User', user: { email: cu.email || '' }, issuedAt: Date.now() };
+      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(result));
+      set({ session: result, loading: false });
+    }
+    return unsub;
   }
 }));
