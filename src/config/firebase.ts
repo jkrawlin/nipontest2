@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getFirestore } from 'firebase/firestore';
 import { getAnalytics, isSupported as analyticsSupported } from 'firebase/analytics';
 
 // Config pulled from env with safe defaults to your current Firebase project
@@ -21,12 +21,19 @@ const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const firebaseAuth = auth; // legacy alias
 
-// Firestore
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager(),
-  }),
-});
+// Firestore (handle HMR/duplicate init by falling back to getFirestore)
+let fsdb;
+try {
+  fsdb = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager(),
+    }),
+  });
+} catch (e) {
+  // If already initialized (e.g., HMR or multiple imports), just get existing instance
+  fsdb = getFirestore(app);
+}
+export const db = fsdb;
 export const firebaseDb = db; // legacy alias
 
 // Optional analytics in browser only
