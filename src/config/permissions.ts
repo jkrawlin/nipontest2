@@ -29,6 +29,7 @@ export const rolePermissions: Record<Role, string[]> = {
     'view_dashboard',
     'view_employees','create_employee','update_employee','delete_employee',
     'view_payroll','process_payroll','approve_payroll',
+    'view_attendance',
     'view_accounts','create_account','update_account','view_transactions','post_transaction','create_payment_voucher','approve_payment_voucher',
     'view_reports','view_settings'
   ],
@@ -36,6 +37,7 @@ export const rolePermissions: Record<Role, string[]> = {
     'view_dashboard',
     'view_employees','create_employee','update_employee',
     'view_payroll','process_payroll',
+    'view_attendance',
     'view_accounts','view_transactions','create_payment_voucher',
     'view_reports'
   ]

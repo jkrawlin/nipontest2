@@ -10,6 +10,12 @@ export const handleFirebaseError = (error: any) => {
         return 'This domain is not authorized. Please contact support.';
       case 'auth/network-request-failed':
         return 'Network error. Please check your connection.';
+      case 'auth/invalid-credential':
+        return 'Invalid email or password.';
+      case 'auth/invalid-email':
+        return 'Invalid email address.';
+      case 'auth/too-many-requests':
+        return 'Too many attempts. Please try again later.';
       case 'auth/user-not-found':
         return 'User not found. Please check credentials.';
       default:

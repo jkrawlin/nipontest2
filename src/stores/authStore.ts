@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { STORAGE_KEYS } from '../lib/constants';
 import type { LoginSchema } from '../lib/validators';
 import { signIn, signOut as fbSignOut, onAuthChange, getCurrentUser } from '@/lib/firebase/auth';
+import { db, COLLECTIONS } from '@/lib/firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
+import { handleFirebaseError } from '@/services/firebase/errorHandler';
 interface LoginResult {
   role: string;
   name: string;
@@ -29,12 +32,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   async login(data) {
     set({ loading: true, error: undefined });
     try {
-      const userData = await signIn(data.email, data.password);
-      const result = { role: (userData as any).role || 'viewer', name: (userData as any).displayName || data.email.split('@')[0], user: { email: (userData as any).email || data.email }, issuedAt: Date.now() };
+  const userData = await signIn(data.email, data.password);
+  const result = { role: (userData as any).role || 'viewer', name: (userData as any).displayName || data.email.split('@')[0], user: { email: (userData as any).email || data.email }, issuedAt: Date.now() };
       localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(result));
       set({ session: result });
     } catch (e) {
-      set({ error: (e as Error).message });
+      const message = handleFirebaseError(e);
+      set({ error: message });
       throw e;
     } finally {
       set({ loading: false });
@@ -47,11 +51,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   initialize() {
     set({ loading: true });
-    const unsub = onAuthChange((firebaseUser) => {
+    const unsub = onAuthChange(async (firebaseUser) => {
       if (firebaseUser) {
-        const result: LoginResult = { role: 'viewer', name: firebaseUser.displayName || firebaseUser.email || 'User', user: { email: firebaseUser.email || '' }, issuedAt: Date.now() };
-        localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(result));
-        set({ session: result, loading: false });
+        try {
+          const snap = await getDoc(doc(db, COLLECTIONS.USERS, firebaseUser.uid));
+          const data = snap.exists() ? snap.data() as any : {};
+          const result: LoginResult = { role: data.role || 'viewer', name: data.displayName || firebaseUser.displayName || firebaseUser.email || 'User', user: { email: data.email || firebaseUser.email || '' }, issuedAt: Date.now() };
+          localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(result));
+          set({ session: result, loading: false });
+        } catch {
+          const result: LoginResult = { role: 'viewer', name: firebaseUser.displayName || firebaseUser.email || 'User', user: { email: firebaseUser.email || '' }, issuedAt: Date.now() };
+          localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(result));
+          set({ session: result, loading: false });
+        }
       } else {
         localStorage.removeItem(STORAGE_KEYS.SESSION);
         set({ session: null, loading: false });
@@ -60,9 +72,19 @@ export const useAuthStore = create<AuthState>((set) => ({
     // Initialize from current user synchronously if present
     const cu = getCurrentUser();
     if (cu) {
-      const result: LoginResult = { role: 'viewer', name: cu.displayName || cu.email || 'User', user: { email: cu.email || '' }, issuedAt: Date.now() };
-      localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(result));
-      set({ session: result, loading: false });
+      (async () => {
+        try {
+          const snap = await getDoc(doc(db, COLLECTIONS.USERS, cu.uid));
+          const data = snap.exists() ? snap.data() as any : {};
+          const result: LoginResult = { role: data.role || 'viewer', name: data.displayName || cu.displayName || cu.email || 'User', user: { email: data.email || cu.email || '' }, issuedAt: Date.now() };
+          localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(result));
+          set({ session: result, loading: false });
+        } catch {
+          const result: LoginResult = { role: 'viewer', name: cu.displayName || cu.email || 'User', user: { email: cu.email || '' }, issuedAt: Date.now() };
+          localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(result));
+          set({ session: result, loading: false });
+        }
+      })();
     }
     return unsub;
   }

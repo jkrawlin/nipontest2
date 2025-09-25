@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getAnalytics, isSupported as analyticsSupported } from 'firebase/analytics';
 
 // Config pulled from env with safe defaults to your current Firebase project
@@ -22,14 +22,12 @@ export const auth = getAuth(app);
 export const firebaseAuth = auth; // legacy alias
 
 // Firestore
-export const db = getFirestore(app);
-export const firebaseDb = db; // legacy alias
-
-// Offline persistence (best-effort)
-enableIndexedDbPersistence(db).catch((err: any) => {
-  // Multi-tab or unsupported environments will throw; log and continue
-  if (typeof console !== 'undefined') console.log('Persistence error:', err?.code || err);
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
 });
+export const firebaseDb = db; // legacy alias
 
 // Optional analytics in browser only
 export const firebaseAnalyticsPromise = (async () => {
