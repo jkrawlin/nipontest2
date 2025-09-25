@@ -4,6 +4,10 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './styles/globals.css';
 import App from './App';
+// Load dev-only helpers (exposed on window) when in dev
+if (import.meta.env.DEV) {
+  import('./test-firebase').catch(() => {/* noop: optional */});
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -1,31 +1,48 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAnalytics, isSupported as analyticsSupported } from 'firebase/analytics';
 import { getAuth } from 'firebase/auth';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getAnalytics, isSupported as analyticsSupported } from 'firebase/analytics';
 
-// Read from Vite env (import.meta.env). Add .env.local entries like:
-// VITE_FIREBASE_API_KEY=...
-// VITE_FIREBASE_AUTH_DOMAIN=...
-// VITE_FIREBASE_PROJECT_ID=...
-// VITE_FIREBASE_APP_ID=...
-// VITE_FIREBASE_MESSAGING_SENDER_ID=...
-// VITE_FIREBASE_STORAGE_BUCKET=...
-
+// Config pulled from env with safe defaults to your current Firebase project
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID as string,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID as string,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET as string,
-  measurementId: (import.meta.env as any).VITE_FIREBASE_MEASUREMENT_ID as string | undefined,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyChmSmwpwKBCdMzrsvyidxX3Dr_fXoh-YA',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'payroll-cae74.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'payroll-cae74',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'payroll-cae74.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '126650756988',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:126650756988:web:99fc9384a4ced996f53ef9',
+  measurementId: (import.meta.env as any).VITE_FIREBASE_MEASUREMENT_ID || 'G-S4E1B33E1P',
 };
 
+// Initialize (avoid re-init during HMR)
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-export const firebaseAuth = getAuth(app);
-export const firebaseDb = getFirestore(app);
+
+// Auth
+export const auth = getAuth(app);
+export const firebaseAuth = auth; // legacy alias
+
+// Firestore
+export const db = getFirestore(app);
+export const firebaseDb = db; // legacy alias
+
+// Offline persistence (best-effort)
+enableIndexedDbPersistence(db).catch((err: any) => {
+  // Multi-tab or unsupported environments will throw; log and continue
+  if (typeof console !== 'undefined') console.log('Persistence error:', err?.code || err);
+});
+
 // Optional analytics in browser only
 export const firebaseAnalyticsPromise = (async () => {
   if (typeof window === 'undefined') return null;
   try { return (await analyticsSupported()) ? getAnalytics(app) : null; } catch { return null; }
 })();
+
+// Collection names (centralized constants)
+export const collections = {
+  employees: 'employees',
+  customers: 'customers',
+  salaryHistory: 'salaryHistory',
+  leaveRecords: 'leaveRecords',
+  payrollRecords: 'payrollRecords',
+  users: 'users',
+} as const;
